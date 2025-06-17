@@ -68,7 +68,6 @@ export default function BookingPage({ params }: BookingPageProps) {
   const router = useRouter()
   const productId = Number.parseInt(params.id, 10)
   const product = productInfo[productId as keyof typeof productInfo] || productInfo[1]
-
   const [currentStep, setCurrentStep] = useState<"datetime" | "seats">("datetime")
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -76,7 +75,7 @@ export default function BookingPage({ params }: BookingPageProps) {
   const [calendarDates, setCalendarDates] = useState<CalendarDate[]>([])
   const [seats, setSeats] = useState<Seat[]>([])
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([])
-  const [ticketCount, setTicketCount] = useState<number>(1)
+  const [ticketMaxCount, setTicketMaxCount] = useState<number>(4) // 이후 api 전달 받은 값 사용
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
@@ -227,7 +226,7 @@ export default function BookingPage({ params }: BookingPageProps) {
       setSeats(seats.map((s) => (s.id === seat.id ? { ...s, status: "available" } : s)))
     } else {
       // ticketCount만큼만 선택 가능
-      if (selectedSeats.length < ticketCount) {
+      if (selectedSeats.length < ticketMaxCount) {
         setSelectedSeats([...selectedSeats, seat])
         setSeats(seats.map((s) => (s.id === seat.id ? { ...s, status: "selected" } : s)))
       }
@@ -235,7 +234,7 @@ export default function BookingPage({ params }: BookingPageProps) {
   }
 
   const handleNextStep = () => {
-    if (currentStep === "datetime" && selectedDate && selectedTime && ticketCount > 0) {
+    if (currentStep === "datetime" && selectedDate && selectedTime && ticketMaxCount > 0) {
       setCurrentStep("seats")
       // Scroll to top when moving to seats selection
       window.scrollTo({ top: 0, behavior: "smooth" })
@@ -469,12 +468,22 @@ export default function BookingPage({ params }: BookingPageProps) {
                     <label className="text-sm text-gray-600">선택한 날짜</label>
                     <p className="font-medium">
                       {selectedDate
-                        ? new Date(selectedDate).toLocaleDateString("ko-KR", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            weekday: "short",
-                          })
+                        ? (() => {
+                          // UTC 기준으로 날짜 생성 (시간대 이슈 방지)
+                          const [year, month, day] = selectedDate.split('-').map(Number);
+
+                          // 요일 배열 정의
+                          const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+
+                          // Date 객체 생성 (한국 시간대 고려)
+                          const date = new Date(year, month - 1, day);
+
+                          // 요일 계산
+                          const weekdayIndex = date.getDay();
+                          const weekday = weekdays[weekdayIndex];
+
+                          return `${year}년 ${month}월 ${day}일 ${weekday}`;
+                        })()
                         : "날짜를 선택해주세요"}
                     </p>
                   </div>
@@ -482,30 +491,6 @@ export default function BookingPage({ params }: BookingPageProps) {
                   <div>
                     <label className="text-sm text-gray-600">선택한 시간</label>
                     <p className="font-medium">{selectedTime || "시간을 선택해주세요"}</p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-gray-600">매수 선택</label>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTicketCount(Math.max(1, ticketCount - 1))}
-                        disabled={ticketCount <= 1}
-                      >
-                        -
-                      </Button>
-                      <span className="font-medium px-3">{ticketCount}매</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTicketCount(Math.min(4, ticketCount + 1))}
-                        disabled={ticketCount >= 4}
-                      >
-                        +
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">최대 4매까지 선택 가능</p>
                   </div>
 
                   <div className="border-t pt-4">
@@ -521,7 +506,7 @@ export default function BookingPage({ params }: BookingPageProps) {
 
                 <Button
                   className="w-full mt-6"
-                  disabled={!selectedDate || !selectedTime || ticketCount === 0}
+                  disabled={!selectedDate || !selectedTime || ticketMaxCount === 0}
                   onClick={handleNextStep}
                 >
                   좌석 선택하기
@@ -727,7 +712,7 @@ export default function BookingPage({ params }: BookingPageProps) {
               <Card className="p-4">
                 <h3 className="font-semibold mb-4">선택좌석</h3>
                 <div className="text-center text-red-600 mb-4">
-                  총 {selectedSeats.length}/{ticketCount}석 선택되었습니다.
+                  총 {selectedSeats.length}석 선택되었습니다.
                 </div>
 
                 {selectedSeats.length > 0 ? (
@@ -755,7 +740,7 @@ export default function BookingPage({ params }: BookingPageProps) {
               <div className="space-y-3">
                 <Button
                   className="w-full bg-red-600 hover:bg-red-700 text-white py-4 text-lg font-semibold"
-                  disabled={selectedSeats.length !== ticketCount}
+                  disabled={selectedSeats.length == 0}
                   onClick={handleBooking}
                 >
                   좌석선택완료
@@ -772,7 +757,7 @@ export default function BookingPage({ params }: BookingPageProps) {
               {/* 주의사항 */}
               <div className="text-xs text-gray-500 space-y-1">
                 <p>⚠️ 좌석 선택시 유의사항</p>
-                <p>• 선택한 매수({ticketCount}매)만큼 좌석을 선택해주세요</p>
+                <p>• 선택한 매수({ticketMaxCount}매)만큼 좌석을 선택해주세요</p>
                 <p>• 선택된 좌석은 10분간 임시 배정됩니다</p>
                 <p>• 좌석을 다시 클릭하면 선택이 취소됩니다</p>
               </div>
