@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Search, User, LogOut } from "lucide-react"
+import { Search, User, LogOut, Settings } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -106,6 +106,14 @@ export default function Header() {
                 </Link>
               </nav>
               <div className="flex items-center space-x-4">
+                {/* Admin Button */}
+                <Link href="/admin">
+                  <Button variant="ghost" size="sm" className="text-gray-600">
+                    <Settings className="w-4 h-4 mr-1" />
+                    관리자
+                  </Button>
+                </Link>
+
                 {!isLoggedIn ? (
                   <>
                     <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleLoginClick}>
@@ -128,6 +136,11 @@ export default function Header() {
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem onClick={() => router.push("/my-profile")}>내 정보</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => router.push("/my-reservations")}>내 예약</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => router.push("/admin")}>
+                          <Settings className="w-4 h-4 mr-2" />
+                          관리자 페이지
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleLogout}>
                           <LogOut className="w-4 h-4 mr-2" />
@@ -167,26 +180,17 @@ export default function Header() {
             <Link href="/contents/genre/concert" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
               콘서트
             </Link>
-            <Link href="/contents/genre/exhibition" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              전시/행사
-            </Link>
-            <Link href="/contents/genre/classic" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              클래식/무용
-            </Link>
-            <Link href="/contents/genre/family" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              아동/가족
-            </Link>
             <Link href="/contents/genre/theater" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
               연극
-            </Link>
-            <Link href="/contents/genre/upcoming" className="text-blue-600 hover:text-blue-700 whitespace-nowrap">
-              오픈예정
             </Link>
             <Link
               href="/contents/ranking?genre=MUSICAL"
               className="text-blue-600 hover:text-blue-700 whitespace-nowrap"
             >
               랭킹
+            </Link>
+            <Link href="/admin" className="text-orange-600 hover:text-orange-700 whitespace-nowrap">
+              관리자
             </Link>
           </div>
         </div>
