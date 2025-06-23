@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Search, User, LogOut } from "lucide-react"
+import {Search, User, LogOut, Siren, UserRoundPlus, TicketCheck} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -37,6 +37,11 @@ export default function Header() {
   const handleLoginClick = () => {
     const currentPath = window.location.pathname
     router.push(`/login?returnUrl=${encodeURIComponent(currentPath)}`)
+  }
+
+  const handleAdminClick = () => {
+    const currentPath = window.location.pathname
+    router.push(`/admin`)
   }
 
   const handleMyReservationClick = () => {
@@ -94,25 +99,19 @@ export default function Header() {
 
             {/* Right Menu */}
             <div className="flex items-center space-x-6">
-              <nav className="hidden lg:flex items-center space-x-6 text-sm text-gray-600">
-                <Link href="#" className="hover:text-gray-900">
-                  NOL
-                </Link>
-                <Link href="#" className="hover:text-gray-900">
-                  TRIPLE
-                </Link>
-                <Link href="#" className="hover:text-gray-900">
-                  Interpark Global
-                </Link>
-              </nav>
               <div className="flex items-center space-x-4">
                 {!isLoggedIn ? (
                   <>
                     <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleLoginClick}>
-                      <User className="w-4 h-4 mr-1" />
+                      <User className="w-4 h-4 mb-1" />
                       로그인
                     </Button>
+                    <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleLoginClick}>
+                      <UserRoundPlus className="w-4 h-4 mb-1" />
+                      회원가입
+                    </Button>
                     <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleMyReservationClick}>
+                      <TicketCheck className="w-4 h-4 mb-1" />
                       내 예약
                     </Button>
                   </>
@@ -121,7 +120,7 @@ export default function Header() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="text-gray-600">
-                          <User className="w-4 h-4 mr-1" />
+                          <User className="w-4 h-4 mb-1" />
                           {userInfo?.name || "사용자"}
                         </Button>
                       </DropdownMenuTrigger>
@@ -136,26 +135,20 @@ export default function Header() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleMyReservationClick}>
+                      <TicketCheck className="w-4 h-4 mb-1" />
                       내 예약
                     </Button>
                   </>
                 )}
               </div>
+              <Button variant="ghost" size="sm" className="text-red-600" onClick={handleAdminClick}>
+                <Siren className="w-4 h-4 mb-1" />
+                관리자
+              </Button>
             </div>
           </div>
         </div>
       </header>
-
-      {/* Main Navigation */}
-      <nav className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center space-x-8 h-14">
-            <Link href="/" className="text-blue-600 font-medium">
-              티켓
-            </Link>
-          </div>
-        </div>
-      </nav>
 
       {/* Sub Navigation */}
       <nav className="bg-gray-50 border-b border-gray-200">
@@ -167,20 +160,8 @@ export default function Header() {
             <Link href="/contents/genre/concert" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
               콘서트
             </Link>
-            <Link href="/contents/genre/exhibition" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              전시/행사
-            </Link>
-            <Link href="/contents/genre/classic" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              클래식/무용
-            </Link>
-            <Link href="/contents/genre/family" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              아동/가족
-            </Link>
             <Link href="/contents/genre/theater" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
               연극
-            </Link>
-            <Link href="/contents/genre/upcoming" className="text-blue-600 hover:text-blue-700 whitespace-nowrap">
-              오픈예정
             </Link>
             <Link
               href="/contents/ranking?genre=MUSICAL"

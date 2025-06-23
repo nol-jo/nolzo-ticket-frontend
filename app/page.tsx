@@ -75,98 +75,11 @@ const bannerData: BannerData[] = [
     backgroundImage: "/images/poster6.png",
     category: "콘서트",
   },
-  {
-    id: 7,
-    title: "전시 모네 특별전",
-    subtitle: "인상주의의 거장을 만나다",
-    description: "빛과 색채의 마법사 모네의 작품 세계",
-    image: "/images/poster7.png",
-    backgroundImage: "/images/poster7.png",
-    category: "전시",
-  },
-  {
-    id: 8,
-    title: "뮤지컬 맘마미아",
-    subtitle: "ABBA의 히트곡으로 만나는 감동",
-    description: "사랑과 가족, 그리고 꿈에 대한 이야기",
-    image: "/images/poster8.png",
-    backgroundImage: "/images/poster8.png",
-    category: "뮤지컬",
-  },
-  {
-    id: 9,
-    title: "프로야구 KBO리그",
-    subtitle: "2024 시즌 정규리그",
-    description: "뜨거운 야구 열기를 직접 느껴보세요",
-    image: "/images/poster9.png",
-    backgroundImage: "/images/poster9.png",
-    category: "스포츠",
-  },
-  {
-    id: 10,
-    title: "아동뮤지컬 뽀로로",
-    subtitle: "뽀로로와 친구들의 모험",
-    description: "온 가족이 함께 즐기는 즐거운 시간",
-    image: "/images/poster10.png",
-    backgroundImage: "/images/poster10.png",
-    category: "아동/가족",
-  },
-  {
-    id: 11,
-    title: "레저 워터파크",
-    subtitle: "시원한 물놀이의 천국",
-    description: "여름을 시원하게 만들어줄 특별한 경험",
-    image: "/images/poster11.png",
-    backgroundImage: "/images/poster11.png",
-    category: "레저",
-  },
-  {
-    id: 12,
-    title: "투어 제주도 패키지",
-    subtitle: "아름다운 제주를 만끽하세요",
-    description: "자연과 문화가 어우러진 힐링 여행",
-    image: "/images/poster12.png",
-    backgroundImage: "/images/poster12.png",
-    category: "투어",
-  },
-  {
-    id: 13,
-    title: "MD상품 굿즈",
-    subtitle: "좋아하는 공연의 특별한 기념품",
-    description: "소중한 추억을 간직할 수 있는 아이템",
-    image: "/images/poster13.png",
-    backgroundImage: "/images/poster13.png",
-    category: "MD상품",
-  },
-  {
-    id: 14,
-    title: "할인 특가 이벤트",
-    subtitle: "더 저렴하게 즐기는 문화생활",
-    description: "놓치면 후회할 특별한 할인 혜택",
-    image: "/images/poster14.png",
-    backgroundImage: "/images/poster14.png",
-    category: "할인",
-  },
 ]
 
 export default function HomePage() {
   const [currentBanner, setCurrentBanner] = useState<BannerData>(bannerData[0])
   const [isTransitioning, setIsTransitioning] = useState(false)
-
-  // 실제 프로젝트에서는 이런 식으로 서버에서 데이터를 가져올 수 있습니다
-  useEffect(() => {
-    // const fetchBannerData = async () => {
-    //   try {
-    //     const response = await fetch('/api/banners')
-    //     const data = await response.json()
-    //     setBannerData(data)
-    //     setCurrentBanner(data[0])
-    //   } catch (error) {
-    //     console.error('Failed to fetch banner data:', error)
-    //   }
-    // }
-    // fetchBannerData()
-  }, [])
 
   const handleBannerHover = (banner: BannerData) => {
     if (banner.id !== currentBanner.id) {
@@ -183,9 +96,9 @@ export default function HomePage() {
       <Header />
 
       {/* Main Banner */}
-      <section className="relative h-[500px] bg-black overflow-hidden">
+      <section className="relative h-[500px] bg-black overflow-visible">
         {/* Background Image */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 overflow-hidden">
           <div
             className={`absolute inset-0 bg-cover bg-center transition-opacity duration-300 ${
               isTransitioning ? "opacity-0" : "opacity-30"
@@ -222,7 +135,7 @@ export default function HomePage() {
 
         {/* Thumbnail Navigation */}
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20">
-          <div className="flex space-x-3 overflow-x-auto px-4 max-w-screen-lg">
+          <div className="flex space-x-3 overflow-x-auto overflow-y-hidden px-4 py-2 max-w-screen-lg">
             {bannerData.map((banner) => (
               <div
                 key={banner.id}
@@ -395,33 +308,7 @@ export default function HomePage() {
             ))}
           </div>
         </section>
-
-        <section className="mt-16">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">오픈 예정</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {bannerData.slice(6, 12).map((banner) => (
-              <Link key={banner.id} href={`/goods/${banner.id}`}>
-                <div className="group cursor-pointer">
-                  <div className="aspect-[3/4] overflow-hidden rounded-lg relative">
-                    <Image
-                      src={banner.image || "/placeholder.svg"}
-                      alt={banner.title}
-                      width={200}
-                      height={267}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
-                      OPEN
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm text-gray-600 group-hover:text-gray-900">{banner.title}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
       </main>
-
       <Footer />
     </div>
   )

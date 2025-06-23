@@ -222,10 +222,6 @@ export default function MyReservationsPage() {
                 <SelectItem value="performance-date">공연일순</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              새로고침
-            </Button>
           </div>
         </div>
 

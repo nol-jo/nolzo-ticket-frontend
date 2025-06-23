@@ -93,20 +93,6 @@ export default function SearchPage() {
         mockResults.totalResults += 1
       }
 
-      if (searchTerm.includes("안녕") || searchTerm.includes("춘천")) {
-        mockResults.venues = [
-          {
-            id: 1,
-            title: "커먼그라운드 춘천 안녕하우스",
-            category: "공연장",
-            venue: "강원도 춘천시 공지로 255(효자동)",
-            image: "/placeholder.svg?height=100&width=100",
-            type: "venue",
-          },
-        ]
-        mockResults.totalResults += mockResults.venues.length
-      }
-
       setSearchResults(mockResults)
     } catch (error) {
       console.error("검색 중 오류 발생:", error)
@@ -135,62 +121,6 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-
-      {/* 검색 헤더 */}
-      <div className="border-b border-gray-200 py-6 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <form onSubmit={handleSearch} className="flex items-center max-w-2xl mx-auto">
-            <div className="relative flex-1">
-              <Input
-                type="text"
-                placeholder="공연명, 아티스트, 공연장을 검색하세요"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-12 py-3 text-lg"
-              />
-              <Button type="submit" size="sm" className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                <Search className="w-4 h-4" />
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      {/* 카테고리 네비게이션 */}
-      <nav className="border-b border-gray-200 py-4">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center space-x-8 overflow-x-auto">
-            <Link
-              href="/search"
-              className="text-blue-600 font-medium whitespace-nowrap border-b-2 border-blue-600 pb-2"
-            >
-              전체
-            </Link>
-            <Link href="/search?category=musical" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              뮤지컬
-            </Link>
-            <Link href="/search?category=concert" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              콘서트
-            </Link>
-            <Link href="/search?category=sports" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              스포츠
-            </Link>
-            <Link href="/search?category=exhibition" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              전시/행사
-            </Link>
-            <Link href="/search?category=classic" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              클래식/무용
-            </Link>
-            <Link href="/search?category=family" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              아동/가족
-            </Link>
-            <Link href="/search?category=theater" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
-              연극
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       <main className="max-w-7xl mx-auto px-4 py-8">
         {isLoading ? (
           // 로딩 상태
@@ -200,12 +130,6 @@ export default function SearchPage() {
           </div>
         ) : searchResults ? (
           <>
-            {/* 검색 결과 헤더 */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">"{searchResults.query}" 검색 결과</h1>
-              <p className="text-gray-600">총 {searchResults.totalResults}개의 결과를 찾았습니다.</p>
-            </div>
-
             {hasResults ? (
               <div className="space-y-12">
                 {/* 공연 결과 */}
@@ -261,39 +185,6 @@ export default function SearchPage() {
                     </div>
                   </section>
                 )}
-
-                {/* 공연장 결과 */}
-                {searchResults.venues.length > 0 && (
-                  <section>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-6">공연장 ({searchResults.venues.length})</h2>
-                    <div className="space-y-4">
-                      {searchResults.venues.map((venue) => (
-                        <Card key={venue.id} className="p-6 hover:shadow-md transition-shadow">
-                          <div className="flex items-start space-x-4">
-                            <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
-                              <Image
-                                src={venue.image || "/placeholder.svg"}
-                                alt={venue.title}
-                                width={80}
-                                height={80}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-900 mb-2">{venue.title}</h3>
-                              {venue.venue && (
-                                <div className="flex items-center gap-2 text-gray-600">
-                                  <MapPin className="w-4 h-4" />
-                                  <span>{venue.venue}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </section>
-                )}
               </div>
             ) : (
               // 검색 결과 없음
@@ -307,27 +198,6 @@ export default function SearchPage() {
                     <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3">판매중인 공연 보기</Button>
                   </Link>
                 </div>
-
-                {/* 추천 검색어 */}
-                <div className="max-w-md mx-auto">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">추천 검색어</h3>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {["라이온킹", "BTS", "뮤지컬", "콘서트", "위키드", "햄릿"].map((keyword) => (
-                      <Button
-                        key={keyword}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSearchQuery(keyword)
-                          window.history.pushState({}, "", `/search?q=${encodeURIComponent(keyword)}`)
-                          performSearch(keyword)
-                        }}
-                      >
-                        {keyword}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </>
@@ -336,27 +206,6 @@ export default function SearchPage() {
           <div className="text-center py-16">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">검색어를 입력해주세요</h2>
             <p className="text-gray-600 mb-8">공연명, 아티스트명, 공연장명으로 검색할 수 있습니다.</p>
-
-            {/* 인기 검색어 */}
-            <div className="max-w-md mx-auto">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">인기 검색어</h3>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {["라이온킹", "BTS", "뮤지컬", "콘서트", "위키드", "햄릿", "클래식", "전시"].map((keyword) => (
-                  <Button
-                    key={keyword}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearchQuery(keyword)
-                      window.history.pushState({}, "", `/search?q=${encodeURIComponent(keyword)}`)
-                      performSearch(keyword)
-                    }}
-                  >
-                    {keyword}
-                  </Button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </main>

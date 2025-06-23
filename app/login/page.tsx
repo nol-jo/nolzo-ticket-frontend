@@ -2,13 +2,13 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import {useState} from "react"
+import {useRouter} from "next/navigation"
 import Link from "next/link"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Card} from "@/components/ui/card"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -64,9 +64,6 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         {/* 로고 */}
         <div className="text-center">
-          <Link href="/" className="inline-block">
-            <div className="bg-blue-600 text-white px-4 py-2 rounded text-2xl font-bold mb-4">NOL</div>
-          </Link>
           <h2 className="text-3xl font-bold text-blue-600 mb-2">NOL</h2>
           <p className="text-gray-600 mb-1">놀수록 놀라운 세상, NOL</p>
           <p className="text-gray-500 text-sm">새로워진 NOL에서</p>
@@ -75,95 +72,40 @@ export default function LoginPage() {
 
         {/* 로그인 폼 */}
         <Card className="p-8 space-y-4">
-          {!showEmailLogin ? (
-            <>
-              {/* 소셜 로그인 버튼들 */}
-              <Button
-                onClick={() => handleSocialLogin("kakao")}
-                className="w-full bg-black hover:bg-gray-800 text-white py-3 rounded-lg flex items-center justify-center gap-2"
-              >
-                <div className="w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <span className="text-black text-xs font-bold">●</span>
-                </div>
-                카카오로 시작하기
-              </Button>
+          {/* 이메일 로그인 폼 */}
+          <form onSubmit={handleEmailLogin} className="space-y-4">
+            <div>
+              <Input
+                type="email"
+                placeholder="이메일 주소"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full py-3"
+                required
+              />
+            </div>
+            <div>
+              <Input
+                type="password"
+                placeholder="비밀번호"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full py-3"
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg">
+              로그인
+            </Button>
+          </form>
 
-              <Button
-                onClick={() => handleSocialLogin("naver")}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 py-3 rounded-lg flex items-center justify-center gap-2"
-              >
-                <div className="w-5 h-5 bg-green-500 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">N</span>
-                </div>
-                네이버로 시작하기
-              </Button>
-
-              <Button
-                onClick={() => handleSocialLogin("google")}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 py-3 rounded-lg flex items-center justify-center gap-2"
-              >
-                <div className="w-5 h-5 bg-white border rounded flex items-center justify-center">
-                  <span className="text-blue-500 text-xs font-bold">G</span>
-                </div>
-                구글로 시작하기
-              </Button>
-
-              <Button
-                onClick={() => handleSocialLogin("apple")}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 py-3 rounded-lg flex items-center justify-center gap-2"
-              >
-                <div className="w-5 h-5 bg-black rounded flex items-center justify-center">
-                  <span className="text-white text-xs">🍎</span>
-                </div>
-                애플로 시작하기
-              </Button>
-
-              <Button
-                onClick={() => setShowEmailLogin(true)}
-                variant="ghost"
-                className="w-full text-gray-600 hover:text-gray-800 py-3"
-              >
-                이메일로 시작하기 ›
-              </Button>
-            </>
-          ) : (
-            <>
-              {/* 이메일 로그인 폼 */}
-              <form onSubmit={handleEmailLogin} className="space-y-4">
-                <div>
-                  <Input
-                    type="email"
-                    placeholder="이메일 주소"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full py-3"
-                    required
-                  />
-                </div>
-                <div>
-                  <Input
-                    type="password"
-                    placeholder="비밀번호"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full py-3"
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg">
-                  로그인
-                </Button>
-              </form>
-
-              <Button
-                onClick={() => setShowEmailLogin(false)}
-                variant="ghost"
-                className="w-full text-gray-600 hover:text-gray-800 py-2"
-              >
-                ← 다른 방법으로 로그인
-              </Button>
-            </>
-          )}
+          <Button
+            onClick={() => handleSocialLogin("test")}
+            variant="ghost"
+            className="w-full text-gray-600 hover:text-gray-800 py-2"
+          >
+            *로그인*
+          </Button>
         </Card>
 
         {/* 아이디 찾기 */}
