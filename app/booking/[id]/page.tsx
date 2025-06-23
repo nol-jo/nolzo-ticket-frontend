@@ -1,772 +1,447 @@
 "use client"
+import React, {useState} from 'react';
+import {useSearchParams} from "next/navigation";
+import Image from "next/image";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import Link from "next/link"
-import { ChevronLeft, ChevronRight, Clock, MapPin, Users } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Header from "@/components/header"
-import Footer from "@/components/footer"
-
-interface BookingPageProps {
-  params: {
-    id: string
-  }
-}
-
-interface ShowTime {
-  time: string
-  available: boolean
-  soldOut?: boolean
-}
-
-interface CalendarDate {
-  date: number
-  fullDate: string
-  isToday: boolean
-  isSelected: boolean
-  isDisabled: boolean
-  showTimes: ShowTime[]
-}
-
-interface Seat {
-  id: string
-  row: string
-  number: number
-  section: string
-  floor: number
-  price: number
-  status: "available" | "selected" | "occupied" | "disabled"
-  x: number
-  y: number
-}
-
-// 상품 정보 (실제로는 API에서 가져올 데이터)
-const productInfo = {
-  1: {
-    title: "뮤지컬 라이온킹",
-    venue: "샬롯데씨어터",
-    poster: "/images/poster1.png",
-    runtime: "150분",
-    ageLimit: "8세 이상",
-  },
-  2: {
-    title: "BTS 월드투어",
-    venue: "잠실올림픽주경기장",
-    poster: "/images/poster2.png",
-    runtime: "180분",
-    ageLimit: "전체관람가",
-  },
-}
-
-export default function BookingPage({ params }: BookingPageProps) {
-  const router = useRouter()
-  const productId = Number.parseInt(params.id, 10)
-  const product = productInfo[productId as keyof typeof productInfo] || productInfo[1]
-  const [currentStep, setCurrentStep] = useState<"datetime" | "seats">("datetime")
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedTime, setSelectedTime] = useState<string | null>(null)
-  const [calendarDates, setCalendarDates] = useState<CalendarDate[]>([])
-  const [seats, setSeats] = useState<Seat[]>([])
-  const [selectedSeats, setSelectedSeats] = useState<Seat[]>([])
-  const [ticketMaxCount, setTicketMaxCount] = useState<number>(4) // 이후 api 전달 받은 값 사용
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-
-  // 로그인 상태 확인 useEffect 추가 (기존 useEffect들 위에)
-  useEffect(() => {
-    const checkAuthStatus = () => {
-      const loggedIn = localStorage.getItem("isLoggedIn") === "true"
-      setIsLoggedIn(loggedIn)
-      setIsCheckingAuth(false)
-
-      if (!loggedIn) {
-        const currentPath = window.location.pathname + window.location.search
-        router.push(`/login?returnUrl=${encodeURIComponent(currentPath)}`)
-      }
-    }
-
-    checkAuthStatus()
-  }, [router])
-
-  // 캘린더 데이터 생성
-  useEffect(() => {
-    const generateCalendarDates = () => {
-      const dates: CalendarDate[] = []
-      const today = new Date()
-      const year = currentDate.getFullYear()
-      const month = currentDate.getMonth()
-
-      // 이번 달의 첫 날과 마지막 날
-      const firstDay = new Date(year, month, 1)
-      const lastDay = new Date(year, month + 1, 0)
-
-      // 이번 달의 첫 주 시작일 (일요일부터)
-      const startDate = new Date(firstDay)
-      startDate.setDate(startDate.getDate() - firstDay.getDay())
-
-      // 6주간의 날짜 생성 (42일)
-      for (let i = 0; i < 42; i++) {
-        const date = new Date(startDate)
-        date.setDate(startDate.getDate() + i)
-
-        const isCurrentMonth = date.getMonth() === month
-        const isToday = date.toDateString() === today.toDateString()
-        const isPast = date < today
-        const fullDateString = date.toISOString().split("T")[0]
-
-        // 샘플 공연 시간 데이터
-        const showTimes: ShowTime[] =
-          isCurrentMonth && !isPast
-            ? [
-                { time: "14:00", available: true },
-                { time: "19:00", available: true },
-                { time: "19:30", available: false, soldOut: true },
-              ]
-            : []
-
-        dates.push({
-          date: date.getDate(),
-          fullDate: fullDateString,
-          isToday,
-          isSelected: selectedDate === fullDateString,
-          isDisabled: !isCurrentMonth || isPast,
-          showTimes,
-        })
-      }
-
-      setCalendarDates(dates)
-    }
-
-    generateCalendarDates()
-  }, [currentDate, selectedDate])
-
-  // 좌석 데이터 생성
-  useEffect(() => {
-    const generateSeats = () => {
-      const seatData: Seat[] = []
-
-      // 1층 좌석 (VIP, R석)
-      const floor1Sections = [
-        { name: "VIP", rows: ["A", "B", "C"], seatsPerRow: 20, price: 190000, floor: 1 },
-        { name: "R", rows: ["D", "E", "F", "G", "H", "I", "J", "K", "L"], seatsPerRow: 24, price: 160000, floor: 1 },
-      ]
-
-      // 2층 좌석 (S석)
-      const floor2Sections = [
-        { name: "S", rows: ["A", "B", "C", "D", "E", "F"], seatsPerRow: 26, price: 130000, floor: 2 },
-      ]
-
-      // 3층 좌석 (A석)
-      const floor3Sections = [
-        { name: "A", rows: ["A", "B", "C", "D", "E", "F"], seatsPerRow: 28, price: 80000, floor: 3 },
-      ]
-
-      const allSections = [...floor1Sections, ...floor2Sections, ...floor3Sections]
-
-      allSections.forEach((section) => {
-        section.rows.forEach((row, rowIndex) => {
-          for (let i = 1; i <= section.seatsPerRow; i++) {
-            const isOccupied = Math.random() < 0.2 // 20% 확률로 이미 예약된 좌석
-            seatData.push({
-              id: `${section.floor}F-${row}${i}`,
-              row,
-              number: i,
-              section: section.name,
-              floor: section.floor,
-              price: section.price,
-              status: isOccupied ? "occupied" : "available",
-              x: i,
-              y: rowIndex,
-            })
-          }
-        })
-      })
-
-      setSeats(seatData)
-    }
-
-    if (currentStep === "seats") {
-      generateSeats()
-    }
-  }, [currentStep])
-
-  const handleDateSelect = (dateInfo: CalendarDate) => {
-    if (dateInfo.isDisabled) return
-    setSelectedDate(dateInfo.fullDate)
-    setSelectedTime(null)
-  }
-
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time)
-  }
-
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
-  }
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
-  }
-
-  const handleSeatClick = (seat: Seat) => {
-    if (seat.status === "occupied" || seat.status === "disabled") return
-
-    const isSelected = selectedSeats.find((s) => s.id === seat.id)
-
-    if (isSelected) {
-      // 선택 해제
-      setSelectedSeats(selectedSeats.filter((s) => s.id !== seat.id))
-      setSeats(seats.map((s) => (s.id === seat.id ? { ...s, status: "available" } : s)))
-    } else {
-      // ticketCount만큼만 선택 가능
-      if (selectedSeats.length < ticketMaxCount) {
-        setSelectedSeats([...selectedSeats, seat])
-        setSeats(seats.map((s) => (s.id === seat.id ? { ...s, status: "selected" } : s)))
-      }
-    }
-  }
-
-  const handleNextStep = () => {
-    if (currentStep === "datetime" && selectedDate && selectedTime && ticketMaxCount > 0) {
-      setCurrentStep("seats")
-      // Scroll to top when moving to seats selection
-      window.scrollTo({ top: 0, behavior: "smooth" })
-    }
-  }
-
-  const handleBooking = async () => {
-    // 로그인 상태 재확인
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true"
-    if (!loggedIn) {
-      const currentPath = window.location.pathname + window.location.search
-      router.push(`/login?returnUrl=${encodeURIComponent(currentPath)}`)
-      return
-    }
-
-    if (selectedSeats.length > 0) {
-      // 예매 완료 처리
-      alert(
-        `예매가 완료되었습니다!\n\n공연: ${product.title}\n날짜: ${selectedDate}\n시간: ${selectedTime}\n좌석: ${selectedSeats.map((s) => s.id).join(", ")}\n총 금액: ${totalPrice.toLocaleString()}원`,
-      )
-      router.push("/my-reservations")
-    }
-  }
-
-  const monthNames = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
-  const dayNames = ["일", "월", "화", "수", "목", "금", "토"]
-
-  const selectedDateInfo = calendarDates.find((d) => d.fullDate === selectedDate)
-  const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0)
-
-  const getSeatColor = (seat: Seat) => {
-    if (seat.status === "selected") return "bg-blue-500 border-blue-600 text-white"
-    if (seat.status === "occupied") return "bg-gray-400 border-gray-500 cursor-not-allowed"
-
-    switch (seat.section) {
-      case "VIP":
-        return "bg-purple-200 hover:bg-purple-300 border-purple-400"
-      case "R":
-        return "bg-green-200 hover:bg-green-300 border-green-400"
-      case "S":
-        return "bg-blue-200 hover:bg-blue-300 border-blue-400"
-      case "A":
-        return "bg-orange-200 hover:bg-orange-300 border-orange-400"
-      default:
-        return "bg-gray-200"
-    }
-  }
-
-  const groupedSeats = seats.reduce(
-    (acc, seat) => {
-      const key = `${seat.floor}F`
-      if (!acc[key]) acc[key] = {}
-      if (!acc[key][seat.row]) acc[key][seat.row] = []
-      acc[key][seat.row].push(seat)
-      return acc
+// Mock data structure for seats
+const mockData = {
+  date: '2025-06-28',
+  time: '17:00',
+  floors: [
+    {
+      name: '1F',
+      rows: [
+        {row: 'A', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+        {row: 'B', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+        {row: 'C', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+        {row: 'D', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+        {row: 'E', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+      ],
+      price: 80000,
     },
-    {} as Record<string, Record<string, Seat[]>>,
-  )
+    {
+      name: '2F',
+      rows: [
+        {row: 'P', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+        {row: 'Q', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+        {row: 'R', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+        {row: 'S', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+        {row: 'T', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+      ],
+      price: 150000,
+    },
+  ],
+};
 
-  if (isCheckingAuth) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">로그인 상태를 확인하는 중...</p>
-        </div>
-      </div>
-    )
-  }
+// Mock 공연 정보 데이터 (나중에 API로 대체)
+const mockShowInfo = {
+  title: '뮤지컬 라이온킹',
+  venue: '샬롯데씨어터',
+  poster: '/images/poster1.png', // 실제로는 공연 포스터 이미지 URL
+  schedules: [
+    {date: '2025-06-15', time: '14:00', available: true},
+    {date: '2025-06-15', time: '19:00', available: true},
+    {date: '2025-06-16', time: '14:00', available: true},
+    {date: '2025-06-16', time: '19:00', available: true},
+    {date: '2025-06-17', time: '19:00', available: true},
+    {date: '2025-06-18', time: '14:00', available: true},
+    {date: '2025-06-18', time: '19:00', available: true},
+  ]
+};
 
-  if (!isLoggedIn) {
-    return null // 리다이렉트 중이므로 아무것도 렌더링하지 않음
-  }
+// 일부 좌석을 이미 예약된 상태로 설정
+mockData.floors[0].rows[0].seats[3].status = 'occupied';
+mockData.floors[0].rows[0].seats[4].status = 'occupied';
+mockData.floors[0].rows[1].seats[7].status = 'occupied';
+mockData.floors[1].rows[2].seats[2].status = 'occupied';
+mockData.floors[1].rows[2].seats[9].status = 'occupied';
 
-  if (currentStep === "datetime") {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
+export default function MyReservationsPage() {
+  const searchParams = useSearchParams()
+  const eventId = searchParams.get('eventId')
+  const date = searchParams.get('date')
+  const time = searchParams.get('time')
 
-        {/* Breadcrumb */}
-        <nav className="border-b border-gray-200 py-3 bg-white">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Link href="/" className="hover:text-gray-900">
-                홈
-              </Link>
-              <span>›</span>
-              <Link href={`/goods/${productId}`} className="hover:text-gray-900">
-                {product.title}
-              </Link>
-              <span>›</span>
-              <span className="text-gray-900">예매하기</span>
-            </div>
-          </div>
-        </nav>
+  const [data, setData] = useState(mockData);
+  const [showInfo, setShowInfo] = useState(mockShowInfo);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [chosenDate, setChosenDate] = useState(date);
+  const [chosenTime, setChosenTime] = useState(time);
 
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* 상품 정보 헤더 */}
-          <Card className="p-6 mb-8">
-            <div className="flex items-start space-x-6">
-              <div className="w-24 h-32 flex-shrink-0">
-                <Image
-                  src={product.poster || "/placeholder.svg"}
-                  alt={product.title}
-                  width={96}
-                  height={128}
-                  className="w-full h-full object-cover rounded"
-                />
-              </div>
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.title}</h1>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>{product.venue}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    <span>{product.runtime}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    <span>{product.ageLimit}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* 캘린더 */}
-            <div className="lg:col-span-2">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">날짜 선택</h2>
-                  <div className="flex items-center space-x-4">
-                    <Button variant="ghost" size="sm" onClick={handlePrevMonth}>
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <span className="text-lg font-medium">
-                      {currentDate.getFullYear()}년 {monthNames[currentDate.getMonth()]}
-                    </span>
-                    <Button variant="ghost" size="sm" onClick={handleNextMonth}>
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
 
-                {/* 요일 헤더 */}
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {dayNames.map((day, index) => (
-                    <div
-                      key={day}
-                      className={`text-center text-sm font-medium py-2 ${
-                        index === 0 ? "text-red-500" : index === 6 ? "text-blue-500" : "text-gray-700"
-                      }`}
-                    >
-                      {day}
-                    </div>
-                  ))}
-                </div>
+  // 선택된 좌석의 총 금액 계산
+  const totalPrice = selectedSeats.reduce((sum, id) => {
+    const floorName = id.split('-')[0];
+    const floor = data.floors.find(f => f.name === floorName);
+    return sum + (floor?.price ?? 0);
+  }, 0);
 
-                {/* 캘린더 그리드 */}
-                <div className="grid grid-cols-7 gap-1">
-                  {calendarDates.map((dateInfo, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleDateSelect(dateInfo)}
-                      disabled={dateInfo.isDisabled}
-                      className={`
-                        aspect-square p-2 text-sm rounded-lg transition-colors relative
-                        ${dateInfo.isDisabled ? "text-gray-300 cursor-not-allowed" : "hover:bg-blue-50 cursor-pointer"}
-                        ${
-                          dateInfo.isSelected
-                            ? "bg-blue-600 text-white"
-                            : dateInfo.isToday
-                              ? "bg-blue-100 text-blue-600 font-semibold"
-                              : "text-gray-700"
-                        }
-                        ${index % 7 === 0 && !dateInfo.isDisabled ? "text-red-500" : ""}
-                        ${index % 7 === 6 && !dateInfo.isDisabled ? "text-blue-500" : ""}
-                      `}
-                    >
-                      {dateInfo.date}
-                      {dateInfo.showTimes.length > 0 && !dateInfo.isDisabled && (
-                        <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-                          <div className="w-1 h-1 bg-orange-400 rounded-full"></div>
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </Card>
+  const toggleSeat = (floorIndex, rowIndex, seatIndex) => {
+    const currentSeat = data.floors[floorIndex].rows[rowIndex].seats[seatIndex];
 
-              {/* 시간 선택 */}
-              {selectedDateInfo && selectedDateInfo.showTimes.length > 0 && (
-                <Card className="p-6 mt-6">
-                  <h3 className="text-lg font-semibold mb-4">시간 선택</h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    {selectedDateInfo.showTimes.map((showTime) => (
-                      <Button
-                        key={showTime.time}
-                        variant={selectedTime === showTime.time ? "default" : "outline"}
-                        disabled={!showTime.available}
-                        onClick={() => handleTimeSelect(showTime.time)}
-                        className={`
-                          ${!showTime.available ? "opacity-50 cursor-not-allowed" : ""}
-                          ${selectedTime === showTime.time ? "bg-blue-600 text-white" : ""}
-                        `}
-                      >
-                        {showTime.time}
-                        {showTime.soldOut && (
-                          <Badge variant="destructive" className="ml-2 text-xs">
-                            매진
-                          </Badge>
-                        )}
-                      </Button>
-                    ))}
-                  </div>
-                </Card>
-              )}
-            </div>
+    // 이미 점유된 좌석은 선택할 수 없음
+    if (currentSeat.status === 'occupied') {
+      alert('이미 예약된 좌석입니다.');
+      return;
+    }
 
-            {/* 예매 정보 */}
-            <div className="lg:col-span-1">
-              <Card className="p-6 sticky top-8">
-                <h3 className="text-lg font-semibold mb-4">예매 정보</h3>
+    // 4개 이상 선택하려고 할 때 방지
+    if (currentSeat.status === 'available' && selectedSeats.length >= 6) {
+      alert('최대 6개의 좌석만 선택할 수 있습니다.');
+      return;
+    }
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm text-gray-600">선택한 날짜</label>
-                    <p className="font-medium">
-                      {selectedDate
-                        ? (() => {
-                          // UTC 기준으로 날짜 생성 (시간대 이슈 방지)
-                          const [year, month, day] = selectedDate.split('-').map(Number);
+    // 좌석 ID 생성
+    const seatId = `${data.floors[floorIndex].name}-${data.floors[floorIndex].rows[rowIndex].row}${seatIndex + 1}`;
 
-                          // 요일 배열 정의
-                          const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    // 상태 업데이트
+    setData(prev => {
+      const newData = JSON.parse(JSON.stringify(prev)); // 깊은 복사
+      const seat = newData.floors[floorIndex].rows[rowIndex].seats[seatIndex];
+      seat.status = seat.status === 'selected' ? 'available' : 'selected';
+      return newData;
+    });
 
-                          // Date 객체 생성 (한국 시간대 고려)
-                          const date = new Date(year, month - 1, day);
+    // 선택된 좌석 목록 업데이트
+    setSelectedSeats(prev => {
+      if (prev.includes(seatId)) {
+        return prev.filter(id => id !== seatId);
+      } else {
+        return [...prev, seatId];
+      }
+    });
+  };
 
-                          // 요일 계산
-                          const weekdayIndex = date.getDay();
-                          const weekday = weekdays[weekdayIndex];
+  // API에서 좌석 정보를 가져오는 함수
+  const fetchSeats = async (date, time) => {
+    try {
+      // 실제 API 호출 (나중에 활성화)
+      // const response = await fetch(`/api/seats?date=${date}&time=${time}`);
+      // const seatData = await response.json();
+      // setData(seatData);
 
-                          return `${year}년 ${month}월 ${day}일 ${weekday}`;
-                        })()
-                        : "날짜를 선택해주세요"}
-                    </p>
-                  </div>
+      // 현재는 Mock 데이터로 시뮬레이션
+      const newMockData = {
+        date: date,
+        time: time,
+        floors: [
+          {
+            name: '1F',
+            rows: [
+              {row: 'A', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+              {row: 'B', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+              {row: 'C', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+              {row: 'D', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+              {row: 'E', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+            ],
+            price: 80000,
+          },
+          {
+            name: '2F',
+            rows: [
+              {row: 'P', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+              {row: 'Q', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+              {row: 'R', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+              {row: 'S', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+              {row: 'T', seats: Array.from({length: 12}, (_, i) => ({id: i, status: 'available'}))},
+            ],
+            price: 150000,
+          },
+        ],
+      };
 
-                  <div>
-                    <label className="text-sm text-gray-600">선택한 시간</label>
-                    <p className="font-medium">{selectedTime || "시간을 선택해주세요"}</p>
-                  </div>
+      // 랜덤하게 일부 좌석을 점유 상태로 설정 (날짜/시간별로 다른 패턴)
+      const occupiedPositions = new Set();
+      const numOccupied = Math.floor(Math.random() * 6) + 4; // 4~9개
 
-                  <div className="border-t pt-4">
-                    <div className="text-sm text-gray-600 mb-2">예매 단계</div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">
-                        1
-                      </div>
-                      <span className="text-sm">날짜/시간 선택</span>
-                    </div>
-                  </div>
-                </div>
+      while (occupiedPositions.size < numOccupied) {
+        const floorIndex = Math.floor(Math.random() * 2);
+        const rowIndex = Math.floor(Math.random() * 5);
+        const seatIndex = Math.floor(Math.random() * 12);
+        const position = `${floorIndex}-${rowIndex}-${seatIndex}`;
+        occupiedPositions.add(position);
+      }
 
-                <Button
-                  className="w-full mt-6"
-                  disabled={!selectedDate || !selectedTime || ticketMaxCount === 0}
-                  onClick={handleNextStep}
-                >
-                  좌석 선택하기
-                </Button>
+      occupiedPositions.forEach(position => {
+        const [floorIndex, rowIndex, seatIndex] = position.split('-').map(Number);
+        newMockData.floors[floorIndex].rows[rowIndex].seats[seatIndex].status = 'occupied';
+      });
 
-                <div className="mt-4 text-center">
-                  <p className="text-xs text-gray-500">다음 단계에서 좌석과 가격을 선택할 수 있습니다</p>
-                </div>
-              </Card>
-            </div>
-          </div>
-        </div>
+      setData(newMockData);
+      setSelectedSeats([]);
 
-        <Footer />
-      </div>
-    )
-  }
+    } catch (error) {
+      console.error('좌석 정보를 가져오는데 실패했습니다:', error);
+      alert('좌석 정보를 불러오는데 실패했습니다. 다시 시도해주세요.');
+    }
+  };
 
-  // 좌석 선택 화면
+  // 날짜 변경 핸들러
+  const handleDateChange = (newDate) => {
+    if (selectedSeats.length > 0) {
+      const confirm = window.confirm('선택한 좌석이 초기화됩니다. 날짜를 변경하시겠습니까?');
+      if (!confirm) return;
+    }
+    setChosenDate(newDate);
+    fetchSeats(newDate, chosenTime);
+  };
+
+  // 시간 변경 핸들러
+  const handleTimeChange = (newTime) => {
+    if (selectedSeats.length > 0) {
+      const confirm = window.confirm('선택한 좌석이 초기화됩니다. 시간을 변경하시겠습니까?');
+      if (!confirm) return;
+    }
+    setChosenTime(newTime);
+    fetchSeats(chosenDate, newTime);
+  };
+
+  const refreshSeats = () => {
+    const confirmRefresh = window.confirm('좌석 정보를 새로고침하시겠습니까?\n선택한 좌석이 모두 해제됩니다.');
+    if (!confirmRefresh) return;
+
+    fetchSeats(chosenDate, chosenTime);
+  };
+
+  const handleComplete = () => {
+    if (selectedSeats.length === 0) {
+      alert('좌석을 선택해주세요.');
+      return;
+    }
+    alert(`${selectedSeats.length}개의 좌석이 선택되었습니다.\n좌석: ${selectedSeats.join(', ')}`);
+  };
+
+  const handlePrevious = () => {
+    if (selectedSeats.length > 0) {
+      const confirm = window.confirm('선택한 좌석이 초기화됩니다. 이전 단계로 이동하시겠습니까?');
+      if (!confirm) return;
+    }
+    alert('이전 단계로 이동합니다.');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-
-      {/* 상단 헤더 */}
-      <div className="bg-red-600 text-white py-3">
-        <div className="max-w-7xl mx-auto px-4">
+    <div className="flex flex-col h-screen bg-gray-100">
+      {/* 공연 정보 헤더 */}
+      <div className="text-white p-4 shadow-lg">
+        <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="bg-white text-red-600 px-3 py-1 rounded font-bold text-sm">02</div>
-              <span className="font-semibold">좌석 선택</span>
-            </div>
-            <div className="flex items-center space-x-4 text-sm">
-              <span>다른 관람일자 선택 :</span>
-              <Select value={selectedDate || ""}>
-                <SelectTrigger className="w-40 bg-white text-black">
-                  <SelectValue placeholder="날짜 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={selectedDate || ""}>{selectedDate}</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={selectedTime || ""}>
-                <SelectTrigger className="w-32 bg-white text-black">
-                  <SelectValue placeholder="시간 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={selectedTime || ""}>{selectedTime}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* 좌석 배치도 */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg p-6">
-              {/* 무대 */}
-              <div className="text-center mb-8">
-                <div className="bg-gray-700 text-white py-3 px-12 rounded-lg inline-block text-lg font-semibold">
-                  STAGE
-                </div>
+              <div className="text-lg font-bold text-gray-800">
+                좌석 선택
               </div>
-
-              {/* 1층 */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4 text-center">객석1층</h3>
-                <div className="space-y-2">
-                  {Object.entries(groupedSeats["1F"] || {}).map(([row, rowSeats]) => (
-                    <div key={row} className="flex items-center justify-center space-x-1">
-                      <div className="w-8 text-center text-sm font-medium text-gray-600">{row}</div>
-                      <div className="flex space-x-1">
-                        {rowSeats.map((seat) => (
-                          <button
-                            key={seat.id}
-                            onClick={() => handleSeatClick(seat)}
-                            disabled={seat.status === "occupied"}
-                            className={`
-                              w-5 h-5 text-xs border rounded transition-colors
-                              ${getSeatColor(seat)}
-                            `}
-                            title={`${seat.id} - ${seat.price.toLocaleString()}원`}
-                          >
-                            {seat.number}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="w-8 text-center text-sm font-medium text-gray-600">{row}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sound Console Booth */}
-              <div className="text-center mb-8">
-                <div className="bg-gray-500 text-white py-2 px-8 rounded inline-block text-sm">SOUND CONSOLE BOOTH</div>
-              </div>
-
-              {/* 2층 */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4 text-center">객석2층</h3>
-                <div className="space-y-2">
-                  {Object.entries(groupedSeats["2F"] || {}).map(([row, rowSeats]) => (
-                    <div key={row} className="flex items-center justify-center space-x-1">
-                      <div className="w-8 text-center text-sm font-medium text-gray-600">{row}</div>
-                      <div className="flex space-x-1">
-                        {rowSeats.map((seat) => (
-                          <button
-                            key={seat.id}
-                            onClick={() => handleSeatClick(seat)}
-                            disabled={seat.status === "occupied"}
-                            className={`
-                              w-5 h-5 text-xs border rounded transition-colors
-                              ${getSeatColor(seat)}
-                            `}
-                            title={`${seat.id} - ${seat.price.toLocaleString()}원`}
-                          >
-                            {seat.number}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="w-8 text-center text-sm font-medium text-gray-600">{row}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 3층 */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4 text-center">객석3층</h3>
-                <div className="space-y-2">
-                  {Object.entries(groupedSeats["3F"] || {}).map(([row, rowSeats]) => (
-                    <div key={row} className="flex items-center justify-center space-x-1">
-                      <div className="w-8 text-center text-sm font-medium text-gray-600">{row}</div>
-                      <div className="flex space-x-1">
-                        {rowSeats.map((seat) => (
-                          <button
-                            key={seat.id}
-                            onClick={() => handleSeatClick(seat)}
-                            disabled={seat.status === "occupied"}
-                            className={`
-                              w-5 h-5 text-xs border rounded transition-colors
-                              ${getSeatColor(seat)}
-                            `}
-                            title={`${seat.id} - ${seat.price.toLocaleString()}원`}
-                          >
-                            {seat.number}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="w-8 text-center text-sm font-medium text-gray-600">{row}</div>
-                    </div>
-                  ))}
+              <div className="text-black px-4 py-2 rounded-lg pl-20">
+                <div className="text-lg font-bold">
+                  {showInfo.title}
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* 우측 정보 패널 */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {/* 좌석등급/잔여석 */}
-              <Card className="p-4">
-                <h3 className="font-semibold mb-4 flex items-center justify-between">
-                  좌석등급 / 잔여석
-                  <span className="text-sm text-blue-600 cursor-pointer">기타 정보보기 ›</span>
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-purple-400 rounded"></div>
-                      <span>VIP석 41석</span>
-                    </div>
-                    <span className="font-semibold">190,000원</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-green-400 rounded"></div>
-                      <span>R석 300석</span>
-                    </div>
-                    <span className="font-semibold">160,000원</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-blue-400 rounded"></div>
-                      <span>S석 214석</span>
-                    </div>
-                    <span className="font-semibold">130,000원</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 bg-orange-400 rounded"></div>
-                      <span>A석 253석</span>
-                    </div>
-                    <span className="font-semibold">80,000원</span>
-                  </div>
-                </div>
-              </Card>
-
-              {/* 선택좌석 */}
-              <Card className="p-4">
-                <h3 className="font-semibold mb-4">선택좌석</h3>
-                <div className="text-center text-red-600 mb-4">
-                  총 {selectedSeats.length}석 선택되었습니다.
-                </div>
-
-                {selectedSeats.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-4 text-sm font-semibold border-b pb-2">
-                      <span>좌석등급</span>
-                      <span>좌석번호</span>
-                    </div>
-                    {selectedSeats.map((seat) => (
-                      <div key={seat.id} className="grid grid-cols-2 gap-4 text-sm">
-                        <span>{seat.section}석</span>
-                        <span>{seat.id}</span>
-                      </div>
+            <div className="flex items-center space-x-6">
+              <div className="text-black px-4 py-2 rounded-lg">
+                <div className="flex items-center space-x-4 text-sm">
+                  <span>다른 관람일자 선택:</span>
+                  <select
+                    value={chosenDate}
+                    onChange={e => handleDateChange(e.target.value)}
+                    className="bg-gray-100 text-black px-2 py-1 rounded text-sm border"
+                  >
+                    {showInfo.schedules.map((dateInfo, index) => (
+                      <option key={index} value={dateInfo.date}>
+                        {new Date(dateInfo.date).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          weekday: 'short'
+                        })}
+                      </option>
                     ))}
-                    <div className="border-t pt-2 text-right">
-                      <span className="text-lg font-bold text-red-600">{totalPrice.toLocaleString()}원</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-gray-500 py-8">원하는 좌석의 위치를 선택해주세요.</div>
-                )}
-              </Card>
-
-              {/* 예매 버튼 */}
-              <div className="space-y-3">
-                <Button
-                  className="w-full bg-red-600 hover:bg-red-700 text-white py-4 text-lg font-semibold"
-                  disabled={selectedSeats.length == 0}
-                  onClick={handleBooking}
-                >
-                  좌석선택완료
-                </Button>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={() => setCurrentStep("datetime")}>
-                    ← 이전단계
-                  </Button>
-                  <Button variant="outline">좌석 다시 선택</Button>
+                  </select>
+                  <span>시간:</span>
+                  <select
+                    value={chosenTime}
+                    onChange={e => handleTimeChange(e.target.value)}
+                    className="bg-gray-100 text-black px-2 py-1 rounded text-sm border"
+                  >
+                    <option value="17:00">19시 00분</option>
+                    <option value="14:00">14시 00분</option>
+                  </select>
                 </div>
-              </div>
-
-              {/* 주의사항 */}
-              <div className="text-xs text-gray-500 space-y-1">
-                <p>⚠️ 좌석 선택시 유의사항</p>
-                <p>• 선택한 매수({ticketMaxCount}매)만큼 좌석을 선택해주세요</p>
-                <p>• 선택된 좌석은 10분간 임시 배정됩니다</p>
-                <p>• 좌석을 다시 클릭하면 선택이 취소됩니다</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <Footer />
+      <div className="flex flex-1 overflow-hidden">
+        {/* Seat map */}
+        <div className="flex-1 p-4 overflow-y-auto">
+          <div className="max-w-4xl mx-auto">
+            {/* 공연장 정보 */}
+            <div className="text-center mb-6">
+              <div className="bg-gray-800 text-white py-3 px-8 rounded-lg inline-block text-xl font-bold">
+                STAGE
+              </div>
+            </div>
+
+            {data.floors.map((floor, floorIndex) => (
+              <div key={floor.name} className="mb-8">
+                <div className="flex justify-center mb-4">
+                  <span className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">
+                    {floor.name}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {floor.rows.map((row, rowIndex) => (
+                    <div key={row.row} className="flex items-center justify-center">
+                      <span className="w-8 text-right mr-4 font-semibold text-gray-700">
+                        {row.row}
+                      </span>
+
+                      <div className="flex gap-1">
+                        {row.seats.map((seat, seatIndex) => {
+                          // floor별로 색상 다르게 적용
+                          const availableClass = floor.name === '1F'
+                            ? 'border-green-500 bg-green-100 hover:bg-green-200'
+                            : 'border-yellow-500 bg-yellow-100 hover:bg-yellow-200';
+                          const selectedClass = 'border-blue-600 bg-blue-600 hover:bg-blue-700 text-white';
+                          const disabledClass = 'border-gray-400 bg-gray-400 cursor-not-allowed opacity-60';
+                          const statusClass = seat.status === 'available'
+                            ? `${availableClass} cursor-pointer`
+                            : seat.status === 'selected'
+                              ? `${selectedClass} cursor-pointer`
+                              : disabledClass;
+
+                          return (
+                            <button
+                              key={seatIndex}
+                              onClick={() => toggleSeat(floorIndex, rowIndex, seatIndex)}
+                              disabled={seat.status === 'occupied'}
+                              className={`w-8 h-8 border-2 rounded-md font-semibold text-xs transition-all duration-200 ${statusClass}`}
+                              title={`${floor.name}-${row.row}${seatIndex + 1}`}
+                            >
+                              {seatIndex + 1}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <span className="w-8 text-left ml-4 font-semibold text-gray-700">
+                        {row.row}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="w-80 h-full bg-white border-l border-gray-200 p-6 flex flex-col shadow-lg">
+          {/* 공연 정보 카드 */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="flex space-x-3">
+              <div
+                className="w-16 h-20 bg-gray-300 rounded flex-shrink-0 flex items-center justify-center text-xs text-gray-600">
+                <div className="lg:col-span-1">
+                  <Image
+                    src={showInfo.poster}
+                    alt={showInfo.title}
+                    width={400}
+                    height={533}
+                    className="rounded-lg object-cover w-full"
+                  />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-sm mb-1">{showInfo.title}</h3>
+                <p className="text-xs text-gray-600 mb-1">{showInfo.venue}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="mb-6">
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <span className="inline-block w-5 h-5 border-2 border-blue-600 bg-blue-600 mr-3 rounded"></span>
+                <span className="text-sm">선택됨</span>
+              </div>
+              <div className="flex items-center">
+                <span
+                  className="inline-block w-5 h-5 border-2 border-gray-400 bg-gray-400 opacity-60 mr-3 rounded"></span>
+                <span className="text-sm">선택 불가</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Seat Info */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">좌석등급 / 잔여석</h3>
+            {/* 가격대 범례 추가 */}
+            <div className="mb-2">
+              <div className="flex justify-between text-sm">
+                <span>1F 좌석</span>
+                <span className="font-semibold text-green-600">{data.floors[0].price.toLocaleString()}원</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>2F 좌석</span>
+                <span className="font-semibold text-yellow-600">{data.floors[1].price.toLocaleString()}원</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Selected Seats */}
+          <div className="flex-1 mb-6 min-h-[120px] overflow-y-auto">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              선택좌석 ({selectedSeats.length}/6)
+            </h3>
+            <div className="bg-gray-50 p-3 rounded-md">
+              {selectedSeats.length === 0 ? (
+                <div className="text-sm text-gray-500 italic">선택된 좌석이 없습니다.</div>
+              ) : (
+                <div className="space-y-1">
+                  {selectedSeats.map(seatId => (
+                    <div key={seatId} className="text-sm font-medium text-blue-600">
+                      {seatId}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Total Price */}
+          {selectedSeats.length > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-md">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">총 금액</span>
+                <span className="text-lg font-bold text-blue-600">
+                  {totalPrice.toLocaleString()}원
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="space-y-3">
+            <button
+              onClick={handleComplete}
+              className="w-full bg-red-600 text-white py-3 rounded-md font-semibold hover:bg-red-700 transition-colors duration-200"
+            >
+              좌석선택완료
+            </button>
+
+            <button
+              onClick={refreshSeats}
+              className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+            >
+              🔄 좌석 새로고침
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-  )
-}
+  );
+};
