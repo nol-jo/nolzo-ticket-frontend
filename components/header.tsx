@@ -3,19 +3,12 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import {Search, User, LogOut, Siren, UserRoundPlus, TicketCheck} from "lucide-react"
+import {Search, User, LogOut, Siren, UserRoundPlus, TicketCheck, UserRoundX} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 export default function Header() {
   const router = useRouter()
@@ -40,13 +33,11 @@ export default function Header() {
   }
 
   const handleAdminClick = () => {
-    const currentPath = window.location.pathname
     router.push(`/admin`)
   }
 
   const handleMyReservationClick = () => {
     if (!isLoggedIn) {
-      const currentPath = window.location.pathname
       router.push(`/login?returnUrl=${encodeURIComponent("/my-reservations")}`)
     } else {
       router.push("/my-reservations")
@@ -117,34 +108,28 @@ export default function Header() {
                   </>
                 ) : (
                   <>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-gray-600">
-                          <User className="w-4 h-4 mb-1" />
-                          {userInfo?.name || "사용자"}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => router.push("/my-profile")}>내 정보</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push("/my-reservations")}>내 예약</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout}>
-                          <LogOut className="w-4 h-4 mr-2" />
-                          로그아웃
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button variant="ghost" size="sm" className="text-gray-600" onClick={() => router.push("/my-profile")}>
+                      <User className="w-4 h-4 mb-1" />
+                      {userInfo?.name || "사용자"}
+                    </Button>
+
                     <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleMyReservationClick}>
                       <TicketCheck className="w-4 h-4 mb-1" />
                       내 예약
                     </Button>
+
+                    <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleLogout}>
+                      <UserRoundX className="w-4 h-4 mb-1" />
+                      로그아웃
+                    </Button>
+
+                    <Button variant="ghost" size="sm" className="text-red-600" onClick={handleAdminClick}>
+                      <Siren className="w-4 h-4 mb-1" />
+                      관리자
+                    </Button>
                   </>
                 )}
               </div>
-              <Button variant="ghost" size="sm" className="text-red-600" onClick={handleAdminClick}>
-                <Siren className="w-4 h-4 mb-1" />
-                관리자
-              </Button>
             </div>
           </div>
         </div>
