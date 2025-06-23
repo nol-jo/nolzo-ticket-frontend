@@ -1,6 +1,6 @@
 "use client"
 import React, {useState} from 'react';
-import {useSearchParams} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import Image from "next/image";
 
 // Mock data structure for seats
@@ -57,6 +57,7 @@ mockData.floors[1].rows[2].seats[2].status = 'occupied';
 mockData.floors[1].rows[2].seats[9].status = 'occupied';
 
 export default function MyReservationsPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const eventId = searchParams.get('eventId')
   const date = searchParams.get('date')
@@ -67,7 +68,8 @@ export default function MyReservationsPage() {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [chosenDate, setChosenDate] = useState(date);
   const [chosenTime, setChosenTime] = useState(time);
-
+  const [isPayment, setIsPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('creditCard');
 
 
   // 선택된 좌석의 총 금액 계산
@@ -204,14 +206,6 @@ export default function MyReservationsPage() {
     fetchSeats(chosenDate, chosenTime);
   };
 
-  const handleComplete = () => {
-    if (selectedSeats.length === 0) {
-      alert('좌석을 선택해주세요.');
-      return;
-    }
-    alert(`${selectedSeats.length}개의 좌석이 선택되었습니다.\n좌석: ${selectedSeats.join(', ')}`);
-  };
-
   const handlePrevious = () => {
     if (selectedSeats.length > 0) {
       const confirm = window.confirm('선택한 좌석이 초기화됩니다. 이전 단계로 이동하시겠습니까?');
@@ -219,6 +213,90 @@ export default function MyReservationsPage() {
     }
     alert('이전 단계로 이동합니다.');
   };
+
+  const handleComplete = () => {
+    if (selectedSeats.length === 0) {
+      alert('좌석을 선택해주세요.');
+      return;
+    }
+    // Go to payment step
+    setIsPayment(true);
+  };
+
+  const handlePayment = () => {
+    alert(
+      `결제 방식: ${{
+        creditCard: '신용카드',
+        kakaoPay: '카카오페이',
+        payPal: '페이팔',
+        bankTransfer: '계좌이체',
+      }[paymentMethod]}\n결제 금액: ${totalPrice.toLocaleString()}원\n결제 성공!`
+    );
+    router.push('/my-reservations');
+  };
+
+  // Payment view
+  if (isPayment) {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center bg-gray-100 p-6">
+        <div className="w-full max-w-md bg-white rounded-lg shadow p-6">
+          {/* Back button */}
+          <button onClick={() => setIsPayment(false)} className="mb-4 text-sm text-gray-500 hover:underline">
+            &larr; 뒤로
+          </button>
+
+          <h2 className="text-2xl font-bold mb-4">결제하기</h2>
+
+          {/* 공연 정보 */}
+          <div className="mb-4">
+            <h3 className="font-medium mb-2">공연 정보</h3>
+            <p className="text-gray-800 font-semibold">{showInfo.title}</p>
+            <p className="text-gray-600">{new Date(chosenDate).toLocaleDateString('ko-KR', {year:'numeric', month:'2-digit', day:'2-digit'})} {chosenTime}</p>
+          </div>
+
+          <div className="mb-4">
+            <h3 className="font-medium mb-2">선택된 좌석</h3>
+            <ul className="list-disc list-inside">
+              {selectedSeats.map(id => (
+                <li key={id} className="text-gray-700">{id}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mb-4 flex justify-between items-center">
+            <span className="font-medium">총 금액</span>
+            <span className="text-xl font-bold text-blue-600">{totalPrice.toLocaleString()}원</span>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="font-medium mb-2">결제 방식 선택</h3>
+            <div className="space-y-2">
+              {['creditCard','kakaoPay','payPal','bankTransfer'].map(method => (
+                <label key={method} className="flex items-center">
+                  <input
+                    type="radio"
+                    name="payment"
+                    value={method}
+                    checked={paymentMethod === method}
+                    onChange={() => setPaymentMethod(method)}
+                    className="mr-2"
+                  />
+                  {{creditCard:'신용카드', kakaoPay:'카카오페이', payPal:'페이팔', bankTransfer:'계좌이체'}[method]}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handlePayment}
+            className="w-full bg-red-600 text-white py-3 rounded-md font-semibold hover:bg-red-700 transition-colors duration-200"
+          >
+            결제하기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
