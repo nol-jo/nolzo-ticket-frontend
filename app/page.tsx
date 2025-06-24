@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -13,75 +13,106 @@ interface BannerData {
   id: number
   title: string
   description: string
-  image: string
-  backgroundImage: string
+  posterImageUrl: string
   category: string
 }
 
-// 메인 배너 데이터 (실제로는 서버에서 가져올 데이터)
-const bannerData: BannerData[] = [
-  {
-    id: 1,
-    title: "뮤지컬 라이온킹",
-    description: "아프리카 대초원을 배경으로 펼쳐지는 생명의 찬가",
-    image: "/images/poster1.png",
-    backgroundImage: "/images/poster1.png",
-    category: "뮤지컬",
-  },
-  {
-    id: 2,
-    title: "BTS 월드투어",
-    description: "전 세계를 감동시킨 BTS의 특별한 무대",
-    image: "/images/poster2.png",
-    backgroundImage: "/images/poster2.png",
-    category: "콘서트",
-  },
-  {
-    id: 3,
-    title: "뮤지컬 위키드",
-    description: "마법사 오즈의 숨겨진 이야기",
-    image: "/images/poster3.png",
-    backgroundImage: "/images/poster3.png",
-    category: "뮤지컬",
-  },
-  {
-    id: 4,
-    title: "연극 햄릿",
-    description: "복수와 광기, 그리고 인간의 본성을 그린 걸작",
-    image: "/images/poster4.png",
-    backgroundImage: "/images/poster4.png",
-    category: "연극",
-  },
-  {
-    id: 5,
-    title: "클래식 갈라 콘서트",
-    description: "베토벤부터 차이콥스키까지, 클래식의 정수",
-    image: "/images/poster5.png",
-    backgroundImage: "/images/poster5.png",
-    category: "클래식",
-  },
-  {
-    id: 6,
-    title: "아이유 콘서트",
-    description: "따뜻한 감성과 아름다운 목소리의 만남",
-    image: "/images/poster6.png",
-    backgroundImage: "/images/poster6.png",
-    category: "콘서트",
-  },
-]
-
 export default function HomePage() {
-  const [currentBanner, setCurrentBanner] = useState<BannerData>(bannerData[0])
+  const [bannerData, setBannerData] = useState<BannerData[]>([])
+  const [currentBanner, setCurrentBanner] = useState<BannerData | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // API에서 데이터 가져오기
+  useEffect(() => {
+    const fetchBannerData = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('http://localhost:8080/api/v1/event/main')
+
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('데이터를 가져오는데 실패했습니다.')
+        }
+
+        const data: BannerData[] = await response.json()
+        setBannerData(data)
+
+        // 첫 번째 배너를 기본으로 설정
+        if (data.length > 0) {
+          setCurrentBanner(data[0])
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchBannerData()
+  }, [])
 
   const handleBannerHover = (banner: BannerData) => {
-    if (banner.id !== currentBanner.id) {
+    if (currentBanner && banner.id !== currentBanner.id) {
       setIsTransitioning(true)
       setTimeout(() => {
         setCurrentBanner(banner)
         setIsTransitioning(false)
       }, 150)
     }
+  }
+
+  // 로딩 상태
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <section className="relative h-[500px] bg-black flex items-center justify-center">
+          <div className="text-white text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p>데이터를 불러오는 중...</p>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    )
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <section className="relative h-[500px] bg-black flex items-center justify-center">
+          <div className="text-white text-center">
+            <p className="text-red-400 mb-4">⚠️ {error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
+            >
+              다시 시도
+            </button>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    )
+  }
+
+  // 데이터가 없는 경우
+  if (!currentBanner || bannerData.length === 0) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <section className="relative h-[500px] bg-black flex items-center justify-center">
+          <div className="text-white text-center">
+            <p>표시할 데이터가 없습니다.</p>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    )
   }
 
   return (
@@ -97,7 +128,7 @@ export default function HomePage() {
               isTransitioning ? "opacity-0" : "opacity-30"
             }`}
             style={{
-              backgroundImage: `url(${currentBanner.backgroundImage})`,
+              backgroundImage: `url(${currentBanner.posterImageUrl})`,
             }}
           />
           <div className="absolute inset-0 bg-black bg-opacity-50" />
@@ -139,7 +170,7 @@ export default function HomePage() {
                 onMouseEnter={() => handleBannerHover(banner)}
               >
                 <Image
-                  src={banner.image || "/placeholder.svg"}
+                  src={banner.posterImageUrl || "/placeholder.svg"}
                   alt={banner.title}
                   width={56}
                   height={56}
@@ -154,30 +185,44 @@ export default function HomePage() {
       {/* Content Grid */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* 육상재 밴드 */}
-          <Link href="/goods/15">
-            <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="relative h-48 bg-gradient-to-br from-blue-400 to-blue-600">
-                <div className="absolute inset-0 p-6 text-white">
-                  <div className="text-sm opacity-90 mb-2">THE BLUE JOURNEY</div>
-                  <h3 className="text-xl font-bold mb-2">육상재 밴드</h3>
-                  <p className="text-sm opacity-90">6.4(수) 20:00 일반예매 티켓오픈</p>
-                </div>
-                <div className="absolute bottom-4 right-4">
-                  <Image
-                    src="/images/poster1.png"
-                    alt="육상재 밴드"
-                    width={60}
-                    height={80}
-                    className="rounded shadow-lg"
-                  />
-                </div>
-              </div>
-            </Card>
-          </Link>
-        </div>
+          {bannerData.map((item, index) => {
+            // 각 카테고리별 그라데이션 색상 정의
+            const gradientColors = {
+              '뮤지컬': 'from-purple-400 to-purple-600',
+              '콘서트': 'from-blue-400 to-blue-600',
+              '연극': 'from-green-400 to-green-600',
+              '클래식': 'from-amber-400 to-amber-600',
+              '기타': 'from-gray-400 to-gray-600'
+            }
 
+            const gradientClass = gradientColors[item.category as keyof typeof gradientColors] || gradientColors['기타']
+
+            return (
+              <Link key={item.id} href={`/goods/${item.id}`}>
+                <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                  <div className={`relative h-48 bg-gradient-to-br ${gradientClass}`}>
+                    <div className="absolute inset-0 p-6 text-white">
+                      <div className="text-sm opacity-90 mb-2">{item.category.toUpperCase()}</div>
+                      <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+                      <p className="text-sm opacity-90 line-clamp-2">{item.description}</p>
+                    </div>
+                    <div className="absolute bottom-4 right-4">
+                      <Image
+                        src={item.posterImageUrl || "/placeholder.svg"}
+                        alt={item.title}
+                        width={60}
+                        height={80}
+                        className="rounded shadow-lg"
+                      />
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
       </main>
+
       <Footer />
     </div>
   )
