@@ -29,7 +29,12 @@ export default function Header() {
 
   const handleLoginClick = () => {
     const currentPath = window.location.pathname
-    router.push(`/login?returnUrl=${encodeURIComponent(currentPath)}`)
+    router.push(`/login`)
+  }
+
+  const handleRegisterClick = () => {
+    const currentPath = window.location.pathname
+    router.push(`/register`)
   }
 
   const handleAdminClick = () => {
@@ -69,7 +74,7 @@ export default function Header() {
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center space-x-2">
                 <div className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-bold">NOL</div>
-                <span className="text-gray-800 font-medium">interpark</span>
+                <span className="text-gray-800 font-medium">Ticket</span>
               </Link>
 
               {/* Search */}
@@ -97,7 +102,7 @@ export default function Header() {
                       <User className="w-4 h-4 mb-1" />
                       로그인
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleLoginClick}>
+                    <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleRegisterClick}>
                       <UserRoundPlus className="w-4 h-4 mb-1" />
                       회원가입
                     </Button>
