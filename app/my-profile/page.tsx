@@ -2,58 +2,83 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { User, Mail, Calendar as CalendarIcon, Edit, Key, X } from "lucide-react"
+import { Key, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import {authAPI, getCookie, deleteCookie, User} from "@/lib/utils"
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 
 interface UserProfile {
   name: string
   email: string
-  birthDate: string
-  joinDate: string
+  birth: string
 }
 
 export default function MyProfilePage() {
   const router = useRouter()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true"
-    const user = localStorage.getItem("userInfo")
+    async function init() {
+      // JWT 검증 및 재발급
+      const jwtUser: User | null = await authAPI.checkAndRefreshToken();
+      if (!jwtUser) {
+        router.push(
+          "/login?returnUrl=" + encodeURIComponent("/my-profile")
+        );
+        return;
+      }
 
-    if (!loggedIn) {
-      router.push("/login?returnUrl=" + encodeURIComponent("/my-profile"))
-      return
+      // 액세스 토큰 헤더에 포함
+      const accessToken = getCookie('accessToken');
+      // 프로필 정보 API 호출
+      try {
+        const res = await fetch(
+          "http://localhost:8080/api/v1/member",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        if (!res.ok) throw new Error("Failed to fetch profile");
+        const data = await res.json();
+        setUserProfile({
+          name: data.name,
+          email: data.email,
+          birth: data.birth
+        });
+      } catch (error) {
+        console.error("Profile fetch error:", error);
+        router.push(
+          "/login?returnUrl=" + encodeURIComponent("/my-profile")
+        );
+      } finally {
+        setLoading(false);
+      }
     }
+    init();
+  }, [router]);
 
-    setIsLoggedIn(true)
-    if (user) {
-      const userData = JSON.parse(user)
-      setUserProfile({
-        name: userData.name || "홍길동",
-        email: userData.email || "user@example.com",
-        birthDate: "1990-01-01",
-        joinDate: "2024-01-15",
-      })
-    }
-  }, [router])
 
+  // 비밀번호 변경 폼을 여는 핸들러
   const handlePasswordChange = () => {
     setShowPasswordForm(true)
   }
 
-  const handlePasswordSubmit = () => {
+  // 비밀번호 변경 제출 핸들러 (API 호출)
+  const handlePasswordSubmit = async () => {
     if (newPassword.length < 8) {
       alert('비밀번호는 최소 8자 이상이어야 합니다.')
       return
@@ -62,32 +87,79 @@ export default function MyProfilePage() {
       alert('비밀번호가 일치하지 않습니다.')
       return
     }
-    // 실제 API 호출 대체
-    alert('비밀번호가 성공적으로 변경되었습니다.')
-    setShowPasswordForm(false)
-    setNewPassword("")
-    setConfirmPassword("")
-  }
 
-  const handleAccountDelete = () => {
-    if (confirm("정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-      localStorage.removeItem("isLoggedIn")
-      localStorage.removeItem("userInfo")
-      alert("계정이 삭제되었습니다.")
-      router.push("/")
+    try {
+      const accessToken = getCookie('accessToken');
+      const response = await fetch('http://localhost:8080/api/v1/member/password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          password: newPassword,
+        }),
+      });
+
+      if (response.ok) {
+        alert('비밀번호가 성공적으로 변경되었습니다.')
+        setShowPasswordForm(false)
+        setNewPassword("")
+        setConfirmPassword("")
+      } else {
+        const errorData = await response.json();
+        alert(`비밀번호 변경에 실패했습니다: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      alert('비밀번호 변경 중 오류가 발생했습니다.');
     }
   }
 
-  if (!isLoggedIn || !userProfile) {
+  // 계정 삭제 핸들러 (API 호출)
+  const handleAccountDelete = async () => {
+    if (confirm("정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+      try {
+        // 서버에 로그아웃/계정삭제 요청
+        const accessToken = getCookie('accessToken');
+        const response = await fetch('http://localhost:8080/api/v1/member', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          }
+        });
+        if (response.ok) {
+          await authAPI.logout() // 서버 세션 및 쿠키 무효화
+
+          // 클라이언트 측 쿠키도 정리
+          deleteCookie('accessToken')
+
+          alert("계정이 삭제되었습니다.")
+          router.push("/")
+        }
+      } catch (error) {
+        console.error('Account deletion error:', error)
+        alert("계정 삭제 중 오류가 발생했습니다.")
+      }
+    }
+  }
+
+  // 로딩 중일 때 스피너 표시
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">로그인 정보를 확인하는 중...</p>
+          <p className="text-gray-600">사용자 정보를 불러오는 중...</p>
         </div>
       </div>
     )
   }
+
+  // 사용자 정보가 없을 경우 (이론상 여기까지 오지 않음)
+  if (!userProfile) return null;
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -99,13 +171,10 @@ export default function MyProfilePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Avatar className="w-24 h-24">
-                <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback className="text-2xl">{userProfile.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center text-white text-5xl">
+                  🐱
+                </AvatarFallback>
               </Avatar>
-              <div>
-                <h2 className="text-xl font-semibold">{userProfile.name}</h2>
-                <p className="text-gray-600">{userProfile.email}</p>
-              </div>
             </div>
             <Button variant="secondary" onClick={handlePasswordChange}>
               비밀번호 수정 <Key className="w-4 h-4 ml-2" />
@@ -113,34 +182,23 @@ export default function MyProfilePage() {
           </div>
 
           <Separator />
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <Label htmlFor="name">이름</Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input id="name" value={userProfile.name} disabled className="pl-10" />
+                <div id="name" className="pl-10" /> {userProfile.name}
               </div>
             </div>
             <div>
               <Label htmlFor="email">이메일</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input id="email" value={userProfile.email} disabled className="pl-10" />
+                <div id="name" className="pl-10" /> {userProfile.email}
               </div>
             </div>
             <div>
               <Label htmlFor="birthDate">생년월일</Label>
               <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input id="birthDate" type="date" value={userProfile.birthDate} disabled className="pl-10" />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="joinDate">가입 일</Label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input id="joinDate" type="date" value={userProfile.joinDate} disabled className="pl-10" />
+                <div id="name" className="pl-10" /> {userProfile.birth}
               </div>
             </div>
           </div>
@@ -181,7 +239,7 @@ export default function MyProfilePage() {
               </div>
               <div className="flex justify-end">
                 <Button onClick={handlePasswordSubmit}>
-                  저장
+                  변경
                 </Button>
               </div>
             </div>

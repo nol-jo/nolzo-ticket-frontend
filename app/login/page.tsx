@@ -1,62 +1,82 @@
 "use client"
 
-import type React from "react"
+import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
 
-import {useState} from "react"
-import {useRouter} from "next/navigation"
-import Link from "next/link"
-
-import {Button} from "@/components/ui/button"
-import {Input} from "@/components/ui/input"
-import {Card} from "@/components/ui/card"
+interface LoginRequest {
+  email: string
+  password: string
+}
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showEmailLogin, setShowEmailLogin] = useState(false)
+  const searchParams = useSearchParams()
 
-  const handleSocialLogin = (provider: string) => {
-    // 실제로는 각 소셜 로그인 API를 호출
-    console.log(`${provider} 로그인 시도`)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-    // 로그인 성공 시뮬레이션
-    localStorage.setItem("isLoggedIn", "true")
-    localStorage.setItem(
-      "userInfo",
-      JSON.stringify({
-        name: "홍길동",
-        email: "user@example.com",
-        provider: provider,
-      }),
-    )
-
-    // 이전 페이지로 돌아가거나 홈으로 이동
-    const returnUrl = new URLSearchParams(window.location.search).get("returnUrl")
-    router.push(returnUrl || "/")
-  }
-
-  const handleEmailLogin = (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
+    setError('')
 
-    if (!email || !password) {
-      alert("이메일과 비밀번호를 입력해주세요.")
-      return
+    const loginData: LoginRequest = {
+      email,
+      password
     }
 
-    // 이메일 로그인 처리
-    localStorage.setItem("isLoggedIn", "true")
-    localStorage.setItem(
-      "userInfo",
-      JSON.stringify({
-        name: "홍길동",
-        email: email,
-        provider: "email",
-      }),
-    )
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // 쿠키 포함
+        body: JSON.stringify(loginData),
+      })
 
-    const returnUrl = new URLSearchParams(window.location.search).get("returnUrl")
-    router.push(returnUrl || "/")
+      if (response.ok) {
+        // 로그인 성공 이벤트 발생 (Header 컴포넌트에서 감지)
+        window.dispatchEvent(new CustomEvent('loginSuccess'))
+
+        // 리다이렉트
+        const returnUrl = searchParams.get('returnUrl') || '/'
+        router.push(returnUrl)
+      } else {
+        // 에러 응답 처리
+        if (response.status === 401) {
+          setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+        } else if (response.status === 400) {
+          setError('입력 정보를 확인해주세요.')
+        } else {
+          setError('로그인에 실패했습니다. 다시 시도해주세요.')
+        }
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    handleEmailLogin(e)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isLoading) {
+      e.preventDefault()
+      const fakeEvent = {
+        preventDefault: () => {}
+      } as React.FormEvent
+      handleEmailLogin(fakeEvent)
+    }
   }
 
   return (
@@ -72,8 +92,15 @@ export default function LoginPage() {
 
         {/* 로그인 폼 */}
         <Card className="p-8 space-y-4">
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+              {error}
+            </div>
+          )}
+
           {/* 이메일 로그인 폼 */}
-          <form onSubmit={handleEmailLogin} className="space-y-4">
+          <div className="space-y-4" onKeyPress={handleKeyPress}>
             <div>
               <Input
                 type="email"
@@ -81,6 +108,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full py-3"
+                disabled={isLoading}
                 required
               />
             </div>
@@ -91,38 +119,52 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full py-3"
+                disabled={isLoading}
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg">
-              로그인
+            <Button
+              onClick={handleSubmit}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg"
+              disabled={isLoading || !email || !password}
+            >
+              {isLoading ? '로그인 중...' : '로그인'}
             </Button>
-          </form>
-
-          <Button
-            onClick={() => handleSocialLogin("test")}
-            variant="ghost"
-            className="w-full text-gray-600 hover:text-gray-800 py-2"
-          >
-            *로그인*
-          </Button>
-        </Card>
-
-        {/* 아이디 찾기 */}
-        <div className="text-center">
-          <Link href="#" className="text-gray-500 hover:text-gray-700 text-sm">
-            아이디 찾기
-          </Link>
-        </div>
-
-        {/* 프로모션 배너 */}
-        <div className="bg-yellow-100 rounded-lg p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-800">첫 구매 10% 할인 쿠폰</p>
-            <p className="text-xs text-gray-600">지금 시작하고 가져가세요!</p>
           </div>
-          <div className="text-2xl">🎫</div>
-        </div>
+
+          {/* 추가 링크들 */}
+          <div className="space-y-3 pt-4">
+            <div className="text-center">
+              <button
+                type="button"
+                className="text-sm text-gray-500 hover:text-gray-700"
+                onClick={() => {
+                  // 비밀번호 찾기 기능 구현 시 사용
+                  alert('비밀번호 찾기 기능은 준비 중입니다.')
+                }}
+              >
+                비밀번호를 잊으셨나요?
+              </button>
+            </div>
+
+            <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+              <span>아직 계정이 없으신가요?</span>
+              <button
+                type="button"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+                onClick={() => {
+                  const returnUrl = searchParams.get('returnUrl')
+                  const registerUrl = returnUrl
+                    ? `/register?returnUrl=${encodeURIComponent(returnUrl)}`
+                    : '/register'
+                  router.push(registerUrl)
+                }}
+              >
+                회원가입
+              </button>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   )

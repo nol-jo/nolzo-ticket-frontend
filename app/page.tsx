@@ -31,7 +31,6 @@ export default function HomePage() {
         setIsLoading(true)
         const response = await fetch('http://localhost:8080/api/v1/event/main')
 
-        console.log(response)
         if (!response.ok) {
           throw new Error('데이터를 가져오는데 실패했습니다.')
         }
