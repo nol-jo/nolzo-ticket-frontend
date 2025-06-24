@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import {useEffect, useState} from "react"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -11,206 +11,67 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 
+interface Event {
+  id: number
+  title: string
+  venue: string
+  description: string
+  startDate: string
+  endDate: string
+  posterImageUrl: string
+  category: string
+  rank?: number // Add optional rank property
+}
+
 export default function RankingPage() {
   const searchParams = useSearchParams()
+  // Ensure the initial genre matches one of your keys
   const genre = searchParams.get("genre") || "MUSICAL"
 
   const [selectedGenre, setSelectedGenre] = useState(genre)
   const [currentDate] = useState(new Date())
+  const [concertRankings, setConcertRankings] = useState<Event[]>([])
+  const [playRankings, setPlayRankings] = useState<Event[]>([])
+  const [musicalRankings, setMusicalRankings] = useState<Event[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // 뮤지컬 랭킹 데이터
-  const musicalRankings = [
-    {
-      rank: 1,
-      id: 1,
-      title: "뮤지컬 팬텀",
-      subtitle: "10주년 기념 공연",
-      venue: "세종문화회관 대극장",
-      period: "2025.5.31 ~ 8.11",
-      image: "/images/poster1.png",
-      bookingRate: 98.4,
-      category: "뮤지컬",
-      type: "license",
-      rankChange: "same",
-    },
-    {
-      rank: 2,
-      id: 2,
-      title: "뮤지컬 팬텀",
-      subtitle: "10주년 기념 공연",
-      venue: "세종문화회관 대극장",
-      period: "2025.5.31 ~ 8.11",
-      image: "/images/poster2.png",
-      bookingRate: 96.9,
-      category: "뮤지컬",
-      type: "license",
-      rankChange: "up",
-      previousRank: 3,
-    },
-    {
-      rank: 3,
-      id: 3,
-      title: "뮤지컬 위키드",
-      subtitle: "내한 공연(WICKED The Musical)",
-      venue: "블루스퀘어 신한카드홀",
-      period: "2025.7.12 ~ 10.26",
-      image: "/images/poster3.png",
-      bookingRate: 94.9,
-      category: "뮤지컬",
-      type: "visit",
-      rankChange: "down",
-      previousRank: 1,
-    },
-    {
-      rank: 4,
-      id: 4,
-      title: "뮤지컬 라이온킹",
-      subtitle: "디즈니 대표작",
-      venue: "샬롯데씨어터",
-      period: "2025.6.1 ~ 12.31",
-      image: "/images/poster4.png",
-      bookingRate: 92.1,
-      category: "뮤지컬",
-      type: "license",
-      rankChange: "up",
-      previousRank: 6,
-    },
-    {
-      rank: 5,
-      id: 5,
-      title: "뮤지컬 맘마미아",
-      subtitle: "ABBA 히트곡 뮤지컬",
-      venue: "충무아트센터",
-      period: "2025.8.1 ~ 10.31",
-      image: "/images/poster5.png",
-      bookingRate: 89.7,
-      category: "뮤지컬",
-      type: "license",
-      rankChange: "new",
-    },
-    {
-      rank: 6,
-      id: 6,
-      title: "뮤지컬 시카고",
-      subtitle: "브로드웨이 명작",
-      venue: "디큐브 링크 아트센터",
-      period: "2025.9.15 ~ 11.30",
-      image: "/images/poster6.png",
-      bookingRate: 87.3,
-      category: "뮤지컬",
-      type: "license",
-      rankChange: "down",
-      previousRank: 4,
-    },
-    {
-      rank: 7,
-      id: 7,
-      title: "뮤지컬 빨간머리 앤",
-      subtitle: "한국 창작 뮤지컬",
-      venue: "예술의전당 오페라극장",
-      period: "2025.7.1 ~ 9.30",
-      image: "/images/poster7.png",
-      bookingRate: 85.2,
-      category: "뮤지컬",
-      type: "original",
-      rankChange: "same",
-    },
-    {
-      rank: 8,
-      id: 8,
-      title: "뮤지컬 레미제라블",
-      subtitle: "불멸의 클래식",
-      venue: "블루스퀘어 인터파크홀",
-      period: "2025.10.1 ~ 12.15",
-      image: "/images/poster8.png",
-      bookingRate: 83.8,
-      category: "뮤지컬",
-      type: "license",
-      rankChange: "up",
-      previousRank: 10,
-    },
-    {
-      rank: 9,
-      id: 9,
-      title: "뮤지컬 명성황후",
-      subtitle: "한국사 창작 뮤지컬",
-      venue: "세종문화회관 대극장",
-      period: "2025.11.1 ~ 12.31",
-      image: "/images/poster9.png",
-      bookingRate: 81.5,
-      category: "뮤지컬",
-      type: "original",
-      rankChange: "down",
-      previousRank: 7,
-    },
-    {
-      rank: 10,
-      id: 10,
-      title: "뮤지컬 지킬앤하이드",
-      subtitle: "인간 내면의 이중성",
-      venue: "충무아트센터 대극장",
-      period: "2025.8.15 ~ 11.15",
-      image: "/images/poster10.png",
-      bookingRate: 79.9,
-      category: "뮤지컬",
-      type: "license",
-      rankChange: "new",
-    },
-  ]
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        const categories = ["CONCERT", "PLAY", "MUSICAL"];
+        const fetchedData: { [key: string]: Event[] } = {};
 
-  // 콘서트 랭킹 데이터
-  const concertRankings = [
-    {
-      rank: 1,
-      id: 11,
-      title: "BTS 월드투어",
-      subtitle: "Yet To Come",
-      venue: "잠실올림픽주경기장",
-      period: "2025.8.15 ~ 8.17",
-      image: "/images/poster11.png",
-      bookingRate: 99.8,
-      category: "콘서트",
-      type: "visit",
-      rankChange: "same",
-    },
-    {
-      rank: 2,
-      id: 12,
-      title: "아이유 콘서트",
-      subtitle: "The Golden Hour",
-      venue: "KSPO DOME",
-      period: "2025.9.1 ~ 9.3",
-      image: "/images/poster12.png",
-      bookingRate: 98.5,
-      category: "콘서트",
-      type: "original",
-      rankChange: "up",
-      previousRank: 3,
-    },
-    {
-      rank: 3,
-      id: 13,
-      title: "임영웅 전국투어",
-      subtitle: "IM HERO",
-      venue: "고척스카이돔",
-      period: "2025.10.5 ~ 10.7",
-      image: "/images/poster13.png",
-      bookingRate: 97.2,
-      category: "콘서트",
-      type: "original",
-      rankChange: "down",
-      previousRank: 1,
-    },
-  ]
+        for (const category of categories) {
+          const response = await fetch(`http://localhost:8080/api/v1/event/rankings?category=${category}`);
+          if (!response.ok) {
+            throw new Error(`${category} 데이터를 가져오는데 실패했습니다.`);
+          }
+          const data: Event[] = await response.json();
+          const rankedData = data.map((item, index) => ({ ...item, rank: index + 1 }));
+          fetchedData[category] = rankedData;
+        }
+
+        setConcertRankings(fetchedData["CONCERT"] || []);
+        setPlayRankings(fetchedData["PLAY"] || []);
+        setMusicalRankings(fetchedData["MUSICAL"] || []);
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const genres = [
     {key: "MUSICAL", label: "뮤지컬", data: musicalRankings},
     {key: "CONCERT", label: "콘서트", data: concertRankings},
-    {key: "THEATER", label: "연극", data: []},
+    {key: "PLAY", label: "연극", data: playRankings}, // Changed "THEATER" to "PLAY" for consistency
   ]
-
-  const types = ["전체", "라이선스/내한", "창작"]
-  const periods = ["일간", "주간", "월간"]
 
   const getCurrentData = () => {
     const currentGenreData = genres.find((g) => g.key === selectedGenre)?.data || []
@@ -223,7 +84,44 @@ export default function RankingPage() {
 
   const currentData = getCurrentData()
   const top3 = currentData.slice(0, 3)
-  const rest = currentData.slice(3)
+  const rest = currentData.slice(3, 10) // Ensure only up to 10 items are displayed
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <section className="relative h-[500px] bg-black flex items-center justify-center">
+          <div className="text-white text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p>데이터를 불러오는 중...</p>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <section className="relative h-[500px] bg-black flex items-center justify-center">
+          <div className="text-white text-center">
+            <p className="text-red-400 mb-4">⚠️ {error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
+            >
+              다시 시도
+            </button>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -237,7 +135,7 @@ export default function RankingPage() {
 
         {/* Genre Tabs */}
         <Tabs value={selectedGenre} onValueChange={setSelectedGenre} className="w-full mb-6">
-          <TabsList className="grid w-full grid-cols-8 bg-gray-100">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-100"> {/* Adjusted grid-cols to 3 */}
             {genres.map((genre) => (
               <TabsTrigger
                 key={genre.key}
@@ -289,7 +187,7 @@ export default function RankingPage() {
                     {/* Poster Image */}
                     <div className="aspect-[3/4] overflow-hidden">
                       <Image
-                        src={item.image || "/placeholder.svg"}
+                        src={item.posterImageUrl || "/placeholder.svg"}
                         alt={item.title}
                         width={400}
                         height={533}
@@ -300,9 +198,9 @@ export default function RankingPage() {
                     {/* Content */}
                     <div className="p-4">
                       <h3 className="font-bold text-lg text-gray-800 mb-1">{item.title}</h3>
-                      {item.subtitle && <p className="text-sm text-gray-600 mb-2">{item.subtitle}</p>}
+                      {item.description && <p className="text-sm text-gray-600 mb-2 truncate">{item.description}</p>}
                       <p className="text-sm text-gray-600 mb-1">{item.venue}</p>
-                      <p className="text-sm text-gray-600 mb-3">{item.period}</p>
+                      <p className="text-sm text-gray-600 mb-3">{item.startDate} ~ {item.endDate}</p>
                     </div>
                   </Card>
                 </Link>
@@ -329,7 +227,7 @@ export default function RankingPage() {
                           {/* Poster */}
                           <div className="w-16 h-20 flex-shrink-0">
                             <Image
-                              src={item.image || "/placeholder.svg"}
+                              src={item.posterImageUrl || "/placeholder.svg"}
                               alt={item.title}
                               width={64}
                               height={80}
@@ -339,9 +237,10 @@ export default function RankingPage() {
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            {item.subtitle && <p className="text-xs text-gray-600 mb-1 truncate">{item.subtitle}</p>}
+                            <h3 className="font-bold text-base text-gray-800 mb-1 truncate">{item.title}</h3>
+                            {item.description && <p className="text-xs text-gray-600 mb-1 truncate">{item.description}</p>}
                             <p className="text-xs text-gray-600 mb-1 truncate">{item.venue}</p>
-                            <p className="text-xs text-gray-600 mb-2">{item.period}</p>
+                            <p className="text-xs text-gray-600 mb-2">{item.startDate} ~ {item.endDate}</p>
                           </div>
                         </div>
                       </Card>
