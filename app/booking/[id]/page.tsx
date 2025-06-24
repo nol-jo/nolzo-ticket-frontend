@@ -1,6 +1,6 @@
 "use client"
 import React, {useState} from 'react';
-import {useRouter, useSearchParams} from "next/navigation";
+import {useParams, useRouter, useSearchParams} from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/header";
 
@@ -106,10 +106,11 @@ const initializeOccupiedSeats = (data) => {
 export default function MyReservationsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const eventId = searchParams.get('eventId')
+  const params = useParams()
   const date = searchParams.get('date')
   const time = searchParams.get('time')
 
+  const eventId = Array.isArray(params.id) ? params.id[0] : params.id;
   const [data, setData] = useState(() => initializeOccupiedSeats(mockData));
   const [showInfo, setShowInfo] = useState(mockShowInfo);
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -276,18 +277,18 @@ export default function MyReservationsPage() {
     router.push('/my-reservations');
   };
 
+  const handleCancel = () => {
+    alert("결제가 취소되었습니다");
+    // 취소 API 호출
+    router.push('/goods/' + eventId);
+  };
 
   // Payment view
   if (isPayment) {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-gray-100 p-6">
-        <Header/>
         <div className="w-full max-w-md bg-white rounded-lg shadow p-6">
-          <button onClick={() => setIsPayment(false)} className="mb-4 text-sm text-gray-500 hover:underline">
-            &larr; 뒤로
-          </button>
-
-          <h2 className="text-2xl font-bold mb-4">결제하기</h2>
+          <h2 className="text-2xl font-bold mb-4">결제정보</h2>
 
           <div className="mb-4">
             <h3 className="font-medium mb-2">공연 정보</h3>
@@ -330,9 +331,15 @@ export default function MyReservationsPage() {
 
           <button
             onClick={handlePayment}
-            className="w-full bg-red-600 text-white py-3 rounded-md font-semibold hover:bg-red-700 transition-colors duration-200"
+            className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors duration-200"
           >
             결제하기
+          </button>
+          <button
+            onClick={handleCancel}
+            className="w-full mt-2 bg-red-600 text-white py-3 rounded-md font-semibold hover:bg-red-700 transition-colors duration-200"
+          >
+            결제취소
           </button>
         </div>
       </div>
