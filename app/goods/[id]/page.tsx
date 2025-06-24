@@ -32,6 +32,18 @@ interface Event {
   schedules: Schedule[]
 }
 
+const categoryMap: Record<string, string> = {
+  CONCERT: "콘서트",
+  MUSICAL: "뮤지컬",
+  PLAY: "연극",
+}
+
+const categoryClassMap: Record<string, string> = {
+  CONCERT: "bg-blue-100 text-blue-800",
+  PLAY: "bg-red-100 text-red-800",
+  MUSICAL: "bg-yellow-100 text-yellow-800",
+}
+
 type BookingCalendarProps = {
   selected: string | null
   onSelect: (d: string) => void
@@ -212,7 +224,9 @@ export default function ProductPage() {
           </div>
           <div className="lg:col-span-1 space-y-6">
             <div>
-              <Badge className="bg-red-100 text-red-800">{event.eventCategory}</Badge>
+                <Badge variant="secondary" className={categoryClassMap[event.eventCategory]}>
+                  {categoryMap[event.eventCategory]}
+                </Badge>
               <h1 className="text-3xl font-bold mt-2">{event.title}</h1>
               <p className="text-gray-600 mt-1">{event.description}</p>
               <div className="flex items-center gap-1 mt-2">
