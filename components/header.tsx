@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import {Search, User, LogOut, Siren, UserRoundPlus, TicketCheck, UserRoundX} from "lucide-react"
+import {Search, User, Siren, UserRoundPlus, TicketCheck, UserRoundX} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -139,17 +139,17 @@ export default function Header() {
       <nav className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center space-x-8 h-12 text-sm overflow-x-auto">
-            <Link href="/contents/genre/musical" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
+            <Link href="/contents/musical" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
               뮤지컬
             </Link>
-            <Link href="/contents/genre/concert" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
+            <Link href="/contents/concert" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
               콘서트
             </Link>
-            <Link href="/contents/genre/theater" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
+            <Link href="/contents/play" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
               연극
             </Link>
             <Link
-              href="/contents/ranking?genre=MUSICAL"
+              href="/contents/ranking"
               className="text-blue-600 hover:text-blue-700 whitespace-nowrap"
             >
               랭킹

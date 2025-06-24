@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -155,107 +155,6 @@ export default function HomePage() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* 육상재 밴드 */}
-          <Link href="/goods/15">
-            <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="relative h-48 bg-gradient-to-br from-blue-400 to-blue-600">
-                <div className="absolute inset-0 p-6 text-white">
-                  <div className="text-sm opacity-90 mb-2">THE BLUE JOURNEY</div>
-                  <h3 className="text-xl font-bold mb-2">육상재 밴드</h3>
-                  <p className="text-sm opacity-90">6.4(수) 20:00 일반예매 티켓오픈</p>
-                </div>
-                <div className="absolute bottom-4 right-4">
-                  <Image
-                    src="/images/poster1.png"
-                    alt="육상재 밴드"
-                    width={60}
-                    height={80}
-                    className="rounded shadow-lg"
-                  />
-                </div>
-              </div>
-            </Card>
-          </Link>
-
-          <Link href="/goods/15">
-            <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="relative h-48 bg-gradient-to-br from-blue-400 to-blue-600">
-                <div className="absolute inset-0 p-6 text-white">
-                  <div className="text-sm opacity-90 mb-2">THE BLUE JOURNEY</div>
-                  <h3 className="text-xl font-bold mb-2">육상재 밴드</h3>
-                  <p className="text-sm opacity-90">6.4(수) 20:00 일반예매 티켓오픈</p>
-                </div>
-                <div className="absolute bottom-4 right-4">
-                  <Image
-                    src="/images/poster1.png"
-                    alt="육상재 밴드"
-                    width={60}
-                    height={80}
-                    className="rounded shadow-lg"
-                  />
-                </div>
-              </div>
-            </Card>
-          </Link>
-          <Link href="/goods/15">
-            <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="relative h-48 bg-gradient-to-br from-blue-400 to-blue-600">
-                <div className="absolute inset-0 p-6 text-white">
-                  <div className="text-sm opacity-90 mb-2">THE BLUE JOURNEY</div>
-                  <h3 className="text-xl font-bold mb-2">육상재 밴드</h3>
-                  <p className="text-sm opacity-90">6.4(수) 20:00 일반예매 티켓오픈</p>
-                </div>
-                <div className="absolute bottom-4 right-4">
-                  <Image
-                    src="/images/poster1.png"
-                    alt="육상재 밴드"
-                    width={60}
-                    height={80}
-                    className="rounded shadow-lg"
-                  />
-                </div>
-              </div>
-            </Card>
-          </Link>
-          <Link href="/goods/15">
-            <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="relative h-48 bg-gradient-to-br from-blue-400 to-blue-600">
-                <div className="absolute inset-0 p-6 text-white">
-                  <div className="text-sm opacity-90 mb-2">THE BLUE JOURNEY</div>
-                  <h3 className="text-xl font-bold mb-2">육상재 밴드</h3>
-                  <p className="text-sm opacity-90">6.4(수) 20:00 일반예매 티켓오픈</p>
-                </div>
-                <div className="absolute bottom-4 right-4">
-                  <Image
-                    src="/images/poster1.png"
-                    alt="육상재 밴드"
-                    width={60}
-                    height={80}
-                    className="rounded shadow-lg"
-                  />
-                </div>
-              </div>
-            </Card>
-          </Link>
-          <Link href="/goods/15">
-            <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="relative h-48 bg-gradient-to-br from-blue-400 to-blue-600">
-                <div className="absolute inset-0 p-6 text-white">
-                  <div className="text-sm opacity-90 mb-2">THE BLUE JOURNEY</div>
-                  <h3 className="text-xl font-bold mb-2">육상재 밴드</h3>
-                  <p className="text-sm opacity-90">6.4(수) 20:00 일반예매 티켓오픈</p>
-                </div>
-                <div className="absolute bottom-4 right-4">
-                  <Image
-                    src="/images/poster1.png"
-                    alt="육상재 밴드"
-                    width={60}
-                    height={80}
-                    className="rounded shadow-lg"
-                  />
-                </div>
-              </div>
-            </Card>
-          </Link>
           <Link href="/goods/15">
             <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
               <div className="relative h-48 bg-gradient-to-br from-blue-400 to-blue-600">
