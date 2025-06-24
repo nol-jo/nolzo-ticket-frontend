@@ -14,7 +14,7 @@ const mockData = {
       name: '1구역',
       rows: Array.from({length: 10}, (_, rowIndex) => ({
         row: String.fromCharCode(65 + rowIndex), // A-J
-        seats: Array.from({length: 10}, (_, i) => ({id: i, status: 'available'}))
+        seats: Array.from({length: 20}, (_, i) => ({id: i, status: 'available'}))
       })),
       price: 150000,
       color: 'red'
@@ -24,7 +24,7 @@ const mockData = {
       name: '2구역',
       rows: Array.from({length: 10}, (_, rowIndex) => ({
         row: String.fromCharCode(65 + rowIndex), // A-J
-        seats: Array.from({length: 10}, (_, i) => ({id: i, status: 'available'}))
+        seats: Array.from({length: 20}, (_, i) => ({id: i, status: 'available'}))
       })),
       price: 120000,
       color: 'blue'
@@ -34,7 +34,7 @@ const mockData = {
       name: '3구역',
       rows: Array.from({length: 10}, (_, rowIndex) => ({
         row: String.fromCharCode(65 + rowIndex), // A-J
-        seats: Array.from({length: 10}, (_, i) => ({id: i, status: 'available'}))
+        seats: Array.from({length: 20}, (_, i) => ({id: i, status: 'available'}))
       })),
       price: 120000,
       color: 'green'
@@ -44,7 +44,7 @@ const mockData = {
       name: '4구역',
       rows: Array.from({length: 10}, (_, rowIndex) => ({
         row: String.fromCharCode(65 + rowIndex), // A-J
-        seats: Array.from({length: 10}, (_, i) => ({id: i, status: 'available'}))
+        seats: Array.from({length: 20}, (_, i) => ({id: i, status: 'available'}))
       })),
       price: 80000,
       color: 'yellow'
@@ -54,7 +54,7 @@ const mockData = {
       name: '5구역',
       rows: Array.from({length: 10}, (_, rowIndex) => ({
         row: String.fromCharCode(65 + rowIndex), // A-J
-        seats: Array.from({length: 10}, (_, i) => ({id: i, status: 'available'}))
+        seats: Array.from({length: 20}, (_, i) => ({id: i, status: 'available'}))
       })),
       price: 80000,
       color: 'purple'

@@ -88,11 +88,11 @@ export default function ConcertGenrePage() {
       <Header />
 
       {/* Page Header */}
-      <section className="bg-gradient-to-r from-yellow-100 to-orange-100 py-12">
+      <section className="bg-gradient-to-r from-blue-100 to-purple-100 py-12">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-800 mb-4">연극</h1>
-            <p className="text-lg text-gray-600">인간의 삶과 감정을 그려내는 진정한 예술</p>
+            <h1 className="text-4xl font-bold text-gray-800 mb-4">콘서트</h1>
+            <p className="text-lg text-gray-600">최고의 아티스트들과 함께하는 특별한 무대</p>
           </div>
         </div>
       </section>

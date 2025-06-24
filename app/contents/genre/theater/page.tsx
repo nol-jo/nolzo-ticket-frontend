@@ -70,7 +70,7 @@ export default function TheaterGenrePage() {
       <Header />
 
       {/* Page Header */}
-      <section className="bg-gradient-to-r from-yellow-100 to-orange-100 py-12">
+      <section className="bg-gradient-to-r from-purple-100 to-pink-100 py-12">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-800 mb-4">연극</h1>
