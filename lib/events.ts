@@ -93,12 +93,26 @@ export async function getAllEvents(): Promise<EventResponse[]> {
   }
 }
 
-export async function createEvent(eventData: EventRequest): Promise<EventResponse> {
+export async function createEvent(eventData: EventRequest, eventImage?: File): Promise<EventResponse> {
+  const formData = new FormData()
+
+  const jsonBlob = new Blob([JSON.stringify(eventData)], {
+    type: "application/json",
+  })
+  formData.append("dto", jsonBlob)
+
+  if (eventImage) {
+    formData.append("eventImage", eventImage)
+  }
+
   try {
-    return await apiCall<EventResponse>("/event/", {
+    const response = await apiCall<EventResponse>("/event", {
       method: "POST",
-      body: JSON.stringify(eventData),
+      body: formData,
+      headers: {
+      },
     })
+    return response
   } catch (error) {
     console.error("Failed to create event:", error)
     throw error

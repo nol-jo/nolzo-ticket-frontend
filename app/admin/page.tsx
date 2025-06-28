@@ -18,25 +18,25 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import Image from "next/image"
 import {createEvent, deleteEvent, getAllEvents, updateEvent} from "@/lib/events";
-import {null} from "zod";
 
-interface Schedule {
-  showDate: string;
-  showTime: string;
+
+export interface Event {
+  id: number
+  title: string
+  venue: string
+  description: string
+  posterImageUrl?: string
+  startDate: string // LocalDate format (YYYY-MM-DD)
+  endDate: string   // LocalDate format (YYYY-MM-DD)
+  schedules?: Schedule[]
+  eventCategory: string // EventCategory enum value
+  runtime: number
+  ageLimit: number
 }
 
-interface Event {
-  id: number;
-  title: string;
-  venue: string;
-  description: string;
-  posterImageUrl?: string;
-  startDate: string;
-  endDate: string;
-  eventCategory: string;
-  runtime: number;
-  ageLimit: number;
-  schedules?: Schedule[];
+export interface Schedule {
+  showDate: string // LocalDate format (YYYY-MM-DD)
+  showTime: string // LocalTime format (HH:MM:SS)
 }
 
 const initialFormData: Event = {
@@ -48,8 +48,8 @@ const initialFormData: Event = {
   startDate: "",
   endDate: "",
   eventCategory: "",
-  runtime: null,
-  ageLimit: null,
+  runtime: 0,
+  ageLimit: 0,
 }
 
 export default function Page() {
@@ -150,7 +150,7 @@ export default function Page() {
 
     try {
       const eventData: Event = {
-        id: formData.id,
+        id : formData.id,
         title: formData.title,
         venue: formData.venue,
         description: formData.description,

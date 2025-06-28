@@ -29,7 +29,7 @@ export default function HomePage() {
     const fetchBannerData = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch('http://localhost:8080/api/v1/event/main')
+        const response = await fetch('http://localhost:8080/api/v1/event/popular')
 
         if (!response.ok) {
           throw new Error('데이터를 가져오는데 실패했습니다.')
@@ -201,7 +201,7 @@ export default function HomePage() {
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
                   <div className={`relative h-48 bg-gradient-to-br ${gradientClass}`}>
                     <div className="absolute inset-0 p-6 text-white">
-                      <div className="text-sm opacity-90 mb-2">{item.category.toUpperCase()}</div>
+                      <div className="text-sm opacity-90 mb-2">{item.category}</div>
                       <h3 className="text-xl font-bold mb-2">{item.title}</h3>
                       <p className="text-sm opacity-90 line-clamp-2">{item.description}</p>
                     </div>
