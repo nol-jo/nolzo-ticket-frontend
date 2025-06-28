@@ -15,6 +15,7 @@ import {authAPI, getCookie, deleteCookie, User} from "@/lib/utils"
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 
 interface UserProfile {
+  id: number
   name: string
   email: string
   birth: string
@@ -55,6 +56,7 @@ export default function MyProfilePage() {
         if (!res.ok) throw new Error("Failed to fetch profile");
         const data = await res.json();
         setUserProfile({
+          id: data.id,
           name: data.name,
           email: data.email,
           birth: data.birth
