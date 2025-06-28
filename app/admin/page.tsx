@@ -39,17 +39,33 @@ export interface Schedule {
   showTime: string // LocalTime format (HH:MM:SS)
 }
 
-const initialFormData: Event = {
+// Form 데이터 관리를 위한 타입
+export interface EventFormData {
+  id: number
+  title: string
+  venue: string
+  description: string
+  posterImageUrl?: string
+  posterImageFile?: File
+  startDate: string
+  endDate: string
+  eventCategory: string
+  runtime: number | ""
+  ageLimit: number | ""
+}
+
+const initialFormData: EventFormData = {
   id : 0,
   title: "",
   venue: "",
   description: "",
   posterImageUrl: "",
+  posterImageFile: undefined,
   startDate: "",
   endDate: "",
   eventCategory: "",
-  runtime: 0,
-  ageLimit: 0,
+  runtime: "",
+  ageLimit: "",
 }
 
 export default function Page() {
@@ -60,7 +76,7 @@ export default function Page() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
-  const [formData, setFormData] = useState<Event>(initialFormData)
+  const [formData, setFormData] = useState<EventFormData>(initialFormData)
   const [formLoading, setFormLoading] = useState(false)
   const [alert, setAlert] = useState<{ type: "success" | "error" | "warning"; message: string } | null>(null)
 
@@ -98,7 +114,7 @@ export default function Page() {
     await loadEvents()
   }
 
-  const handleInputChange = (field: keyof Event, value: any) => {
+  const handleInputChange = (field: keyof EventFormData, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -148,39 +164,41 @@ export default function Page() {
     e.preventDefault()
     setFormLoading(true)
 
-    try {
-      const eventData: Event = {
-        id : formData.id,
-        title: formData.title,
-        venue: formData.venue,
-        description: formData.description,
-        posterImageUrl: formData.posterImageUrl || undefined,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        eventCategory: formData.eventCategory,
-        runtime: formData.runtime,
-        ageLimit: formData.ageLimit,
-        schedules:
-          schedules.length > 0
-            ? schedules.map((schedule) => ({
-                showDate: schedule.showDate,
-                showTime: schedule.showTime + ":00", // HH:MM:SS 형식으로 변환
-              }))
-            : undefined,
-      }
+    // Destructure to exclude posterImageUrl and posterImageFile from the DTO
+    const { posterImageUrl, posterImageFile, ...eventData } = formData;
 
+    const eventRequestDto = {
+      ...eventData,
+      runtime: Number(formData.runtime || 0),
+      ageLimit: Number(formData.ageLimit || 0),
+      schedules:
+        schedules.length > 0
+          ? schedules.map((schedule) => ({
+              showDate: schedule.showDate,
+              showTime: schedule.showTime + ":00", // HH:MM:SS 형식으로 변환
+            }))
+          : [],
+    }
+
+    const payload = new FormData();
+    payload.append('dto', new Blob([JSON.stringify(eventRequestDto)], { type: 'application/json' }));
+
+    if (formData.posterImageFile) {
+      payload.append('eventImage', formData.posterImageFile);
+    }
+
+    try {
       if (editingEvent) {
         if (apiConnected) {
-          const updatedEvent = await updateEvent(editingEvent.id, eventData)
+          const updatedEvent = await updateEvent(editingEvent.id, payload)
           setEvents((prev) => prev.map((event) => (event.id === editingEvent.id ? updatedEvent : event)))
           showAlert("success", "이벤트가 성공적으로 수정되었습니다.")
         }
       } else {
         if (apiConnected) {
-          const newEvent = await createEvent(eventData)
+          const newEvent = await createEvent(payload)
           setEvents((prev) => [...prev, newEvent])
           showAlert("success", "새 이벤트가 성공적으로 생성되었습니다.")
-        } else {
         }
       }
 
@@ -206,6 +224,7 @@ export default function Page() {
       venue: event.venue,
       description: event.description,
       posterImageUrl: event.posterImageUrl || "",
+      posterImageFile: undefined,
       startDate: event.startDate,
       endDate: event.endDate,
       eventCategory: event.eventCategory,
@@ -344,13 +363,37 @@ export default function Page() {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="posterImageUrl">포스터 이미지 URL</Label>
+                        <Label htmlFor="posterImageFile">포스터 이미지</Label>
                         <Input
-                          id="posterImageUrl"
-                          value={formData.posterImageUrl}
-                          onChange={(e) => handleInputChange("posterImageUrl", e.target.value)}
-                          placeholder="https://example.com/poster.jpg"
+                          id="posterImageFile"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleInputChange("posterImageFile", e.target.files?.[0])}
                         />
+                        {formData.posterImageUrl && !formData.posterImageFile && (
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-500">현재 이미지:</p>
+                            <Image
+                              src={formData.posterImageUrl}
+                              alt="Current poster"
+                              width={100}
+                              height={100}
+                              className="rounded object-cover"
+                            />
+                          </div>
+                        )}
+                        {formData.posterImageFile && (
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-500">새 이미지 미리보기:</p>
+                            <Image
+                              src={URL.createObjectURL(formData.posterImageFile)}
+                              alt="New poster preview"
+                              width={100}
+                              height={100}
+                              className="rounded object-cover"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -651,20 +694,9 @@ export default function Page() {
                               </div>
                             )}
                           </div>
-                          <div className="flex space-x-2 ml-4">
-                            <Button variant="outline" size="sm" onClick={() => handleEdit(event)} disabled={loading}>
-                              <Edit className="w-4 h-4 mr-1" />
-                              수정
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(event.id)}
-                              disabled={loading}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              삭제
+                           <div className="flex flex-col space-y-2">
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(event.id)}>
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
