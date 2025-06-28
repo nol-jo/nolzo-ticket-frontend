@@ -179,9 +179,6 @@ export default function MyReservationsPage() {
 
 // 좌석 새로고침
   const refreshSeats = async () => {
-    const confirmRefresh = window.confirm('좌석 정보를 새로고침하시겠습니까?\n선택한 좌석이 모두 해제됩니다.');
-    if (!confirmRefresh) return;
-
     setSelectedSeats([]);
     try {
       if (date === null || time === null) {
@@ -220,14 +217,12 @@ export default function MyReservationsPage() {
             id: seat.id,
             rowName: seat.rowName,
             seatNumber: seat.seatNumber,
-            status: "AVAILABLE",
           })),
         }),
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || '좌석 잠금에 실패했습니다.');
+        throw new Error('이미 선택된 좌석입니다.');
       }
 
       const data: { id: number } = await res.json();
@@ -239,6 +234,10 @@ export default function MyReservationsPage() {
     } catch (error: any) {
       console.error('예약 오류:', error);
       alert(error.message || '좌석 잠금 중 오류가 발생했습니다.');
+      
+      if (error.message.includes('이미 선택된 좌석입니다')) {
+        refreshSeats();
+      }
     }
   };
 
