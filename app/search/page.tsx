@@ -51,7 +51,7 @@ export default function SearchPage() {
 
     try {
       setIsLoading(true)
-      const response = await fetch(`http://localhost:8080/api/v1/event?search=${encodeURIComponent(searchTerm)}`)
+      const response = await fetch(`http://localhost:8080/api/v1/event/search?search=${encodeURIComponent(searchTerm)}`)
 
       console.log(response)
       if (!response.ok) {
