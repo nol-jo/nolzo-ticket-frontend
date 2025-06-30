@@ -21,7 +21,7 @@ interface Event {
   id: number,
   title: string,
   venue: string,
-  poster: string,
+  posterImageUrl: string,
   schedules: {
     id: number,
     showDate: string,
@@ -560,7 +560,7 @@ export default function MyReservationsPage() {
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <div className="flex space-x-3">
               <div className="w-16 h-20 bg-gray-300 rounded flex-shrink-0">
-                {event.poster && <Image src={event.poster} alt={event.title} width={400} height={533} className="rounded-lg object-cover w-full h-full"/>}
+                {event.posterImageUrl && <Image src={event.posterImageUrl} alt={event.title} width={400} height={533} className="rounded-lg object-cover w-full h-full"/>}
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-sm mb-1">{event.title}</h3>

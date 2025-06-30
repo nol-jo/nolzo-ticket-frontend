@@ -134,19 +134,6 @@ export default function LoginPage() {
 
           {/* 추가 링크들 */}
           <div className="space-y-3 pt-4">
-            <div className="text-center">
-              <button
-                type="button"
-                className="text-sm text-gray-500 hover:text-gray-700"
-                onClick={() => {
-                  // 비밀번호 찾기 기능 구현 시 사용
-                  alert('비밀번호 찾기 기능은 준비 중입니다.')
-                }}
-              >
-                비밀번호를 잊으셨나요?
-              </button>
-            </div>
-
             <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
               <span>아직 계정이 없으신가요?</span>
               <button

@@ -229,11 +229,6 @@ export default function ProductPage() {
                 </Badge>
               <h1 className="text-3xl font-bold mt-2">{event.title}</h1>
               <p className="text-gray-600 mt-1">{event.description}</p>
-              <div className="flex items-center gap-1 mt-2">
-                <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold">{event.rating.toFixed(1)}</span>
-                <span className="text-gray-600">({event.reviewCount})</span>
-              </div>
             </div>
             <Card className="p-6 space-y-4">
               <div className="flex items-center gap-2 text-sm text-gray-600">

@@ -93,7 +93,7 @@ export default function MyReservationsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "PENDING": return <Badge className="bg-yellow-100 text-yellow-800">결제대기</Badge>
-      case "WAITING": return <Badge className="bg-blue-100 text-blue-800">예약완료</Badge>
+      case "CONFIRMED": return <Badge className="bg-blue-100 text-blue-800">예약완료</Badge>
       case "CANCELLED": return <Badge className="bg-red-100 text-red-800">취소됨</Badge>
       case "COMPLETED": return <Badge className="bg-green-100 text-green-800">관람완료</Badge>
       default: return <Badge variant="secondary">{status}</Badge>
@@ -162,8 +162,6 @@ export default function MyReservationsPage() {
           <Tabs defaultValue="RESERVED" className="w-full">
             <TabsList className="grid grid-cols-3">
               <TabsTrigger value="RESERVED">예약완료 ({filterReservations("RESERVED").length})</TabsTrigger>
-              <TabsTrigger value="COMPLETED">관람완료 ({filterReservations("COMPLETED").length})</TabsTrigger>
-              <TabsTrigger value="CANCELLED">취소/환불 ({filterReservations("CANCELLED").length})</TabsTrigger>
             </TabsList>
             { ["RESERVED", "COMPLETED", "CANCELLED"].map(tab => (
               <TabsContent key={tab} value={tab} className="mt-6 space-y-4">
@@ -224,9 +222,12 @@ export default function MyReservationsPage() {
               <p><strong>공연명:</strong> {detailRes.event.title}</p>
               <p><strong>장소:</strong> {detailRes.event.venue}</p>
               <p><strong>날짜:</strong> {detailRes.event.date} {detailRes.event.time}</p>
-              <p><strong>좌석:</strong> {detailRes.detail.seats.map(s => `${s.seatSection} ${s.rowName}열 ${s.seatNumber}번 (${s.floor})`).join(', ')}</p>
+              <p>
+                <strong>좌석:</strong><br />
+                {detailRes.detail.seats.map(s => (<span key={`${s.rowName}-${s.seatNumber}`}>{`${s.rowName}열 ${s.seatNumber}번`}<br /></span>))}
+              </p>
               <p><strong>예약번호:</strong> {detailRes.detail.reservationNumber}</p>
-              <p><strong>결제방법:</strong> {detailRes.detail.paymentMethod || '미결제'}</p>
+              <p><strong>결제방법:</strong> 신용카드</p>
               <p><strong>예약일:</strong> {new Date(detailRes.detail.createdAt).toLocaleString()}</p>
               <p><strong>총 가격:</strong> {
                 detailRes.detail.totalPrice > 0
