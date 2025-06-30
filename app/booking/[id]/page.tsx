@@ -200,11 +200,26 @@ export default function MyReservationsPage() {
     }
 
     try {
-      // JWT 토큰 가져오기
       const accessToken = getCookie('accessToken');
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
-      // 예약(락) API 호출
+      const currentRes = await fetch(
+        `http://localhost:8080/api/v1/reservations/reservation/${eventId}?date=${date}&time=${time}`
+      );
+      if (!currentRes.ok) {
+        throw new Error('좌석 정보를 가져오는데 실패했습니다.');
+      }
+      const currentSeats: { id: number; status: string }[] = await currentRes.json();
+
+      const conflict = selectedSeats.find(sel => {
+        const matched = currentSeats.find(cur => cur.id === sel.id);
+        return matched && matched.status !== 'AVAILABLE';
+      });
+      if (conflict) {
+        throw new Error('이미 선택된 좌석입니다.');
+      }
+
+      // 4. 예약(락) API 호출
       const res = await fetch('http://localhost:8080/api/v1/reservations', {
         method: 'POST',
         headers: {
@@ -212,7 +227,7 @@ export default function MyReservationsPage() {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          eventId: eventId, // 또는 event.id
+          eventId: eventId,
           seats: selectedSeats.map(seat => ({
             id: seat.id,
             rowName: seat.rowName,
@@ -220,25 +235,23 @@ export default function MyReservationsPage() {
             seatSection: seat.seatSection,
             price: seat.price,
             status: seat.status,
-            reservationId: reservationId,
           })),
         }),
       });
 
       if (!res.ok) {
-        throw new Error('이미 선택된 좌석입니다.');
+        throw new Error('예약 과정에서 오류가 발생했습니다.');
       }
 
       const data: { id: number } = await res.json();
-
       setReservationId(data.id);
 
-      // 결제 단계로 이동
+      // 5. 결제 단계로 이동
       setIsPayment(true);
     } catch (error: any) {
       console.error('예약 오류:', error);
       alert(error.message || '좌석 잠금 중 오류가 발생했습니다.');
-      
+
       if (error.message.includes('이미 선택된 좌석입니다')) {
         refreshSeats();
       }
@@ -280,7 +293,6 @@ export default function MyReservationsPage() {
 
   const handleCancel = async () => {
     try {
-      // JWT 토큰 가져오기
       const accessToken = getCookie('accessToken');
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
@@ -293,7 +305,7 @@ export default function MyReservationsPage() {
         body: JSON.stringify({
           reservationId: reservationId,
           paymentMethod: paymentMethod,
-          paymentStatus: "CANCELED",
+          paymentStatus: 'CANCELED',
           price: totalPrice,
         }),
       });
@@ -303,14 +315,14 @@ export default function MyReservationsPage() {
         throw new Error(err.message || '결제 실패');
       }
 
-      alert(`결제가 취소 되었습니다.`);
-      router.push('/goods/' + eventId);
-
+      alert('결제가 취소 되었습니다.');
+      window.location.reload()
     } catch (error: any) {
       console.error('예약 오류:', error);
       alert(error.message || '결제 실패');
     }
   };
+
   const dateParam = searchParams.get('date') ?? Date.now().toString();
   // Payment view
   if (isPayment) {
