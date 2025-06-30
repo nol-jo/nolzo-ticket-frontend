@@ -103,7 +103,11 @@ export default function MyReservationsPage() {
   const filterReservations = (status: string) => {
     // 상태별 필터링 로직 조정
     if (status === "RESERVED") {
-      return reservations.filter(r => r.detail.status === "WAITING" || r.detail.status === "PENDING")
+      return reservations.filter(r =>
+        r.detail.status === "WAITING" ||
+        r.detail.status === "PENDING" ||
+        r.detail.status === "CONFIRMED"
+      )
     }
     return reservations.filter(r => r.detail.status === status)
   }
