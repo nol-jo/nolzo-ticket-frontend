@@ -280,7 +280,7 @@ export default function MyReservationsPage() {
       const accessToken = getCookie('accessToken');
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
-      const res = await fetch('http://localhost:8080/api/v1/payments/cancel', {
+      const res = await fetch('http://localhost:8080/api/v1/payments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
