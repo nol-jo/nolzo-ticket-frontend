@@ -217,6 +217,10 @@ export default function MyReservationsPage() {
             id: seat.id,
             rowName: seat.rowName,
             seatNumber: seat.seatNumber,
+            seatSection: seat.seatSection,
+            price: seat.price,
+            status: seat.status,
+            reservationId: reservationId,
           })),
         }),
       });
