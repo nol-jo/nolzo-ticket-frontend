@@ -44,7 +44,7 @@ export default function RankingPage() {
         const fetchedData: { [key: string]: Event[] } = {};
 
         for (const category of categories) {
-          const response = await fetch(`http://localhost:8080/api/v1/event/rankings?category=${category}`);
+          const response = await fetch(`/api/v1/event/rankings?category=${category}`);
           if (!response.ok) {
             throw new Error(`${category} 데이터를 가져오는데 실패했습니다.`);
           }

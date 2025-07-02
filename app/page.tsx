@@ -29,7 +29,7 @@ export default function HomePage() {
     const fetchBannerData = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch('http://localhost:8080/api/v1/event/popular')
+        const response = await fetch('/api/v1/event/popular')
 
         if (!response.ok) {
           throw new Error('데이터를 가져오는데 실패했습니다.')

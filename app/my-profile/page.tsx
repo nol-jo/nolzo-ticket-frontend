@@ -45,7 +45,7 @@ export default function MyProfilePage() {
       // 프로필 정보 API 호출
       try {
         const res = await fetch(
-          "http://localhost:8080/api/v1/member",
+          "/api/v1/member",
           {
             method: "GET",
             headers: {
@@ -92,7 +92,7 @@ export default function MyProfilePage() {
 
     try {
       const accessToken = getCookie('accessToken');
-      const response = await fetch('http://localhost:8080/api/v1/member/password', {
+      const response = await fetch('/api/v1/member/password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ export default function MyProfilePage() {
       try {
         // 서버에 로그아웃/계정삭제 요청
         const accessToken = getCookie('accessToken');
-        const response = await fetch('http://localhost:8080/api/v1/member', {
+        const response = await fetch('/api/v1/member', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

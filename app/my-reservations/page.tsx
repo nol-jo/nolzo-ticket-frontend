@@ -68,7 +68,7 @@ export default function MyReservationsPage() {
 
       try {
         const accessToken = getCookie('accessToken');
-        const res = await fetch("http://localhost:8080/api/v1/reservations", {
+        const res = await fetch("/api/v1/reservations", {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }

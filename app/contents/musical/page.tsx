@@ -26,7 +26,7 @@ export default function ConcertGenrePage() {
     const fetchData = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch('http://localhost:8080/api/v1/event?category=MUSICAL')
+        const response = await fetch('/api/v1/event?category=MUSICAL')
 
         console.log(response)
         if (!response.ok) {

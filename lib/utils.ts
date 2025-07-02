@@ -73,7 +73,7 @@ export const authAPI = {
   // 로그아웃
   async logout(): Promise<boolean> {
     try {
-      await fetch('http://localhost:8080/api/v1/auth/logout', {
+      await fetch('/api/v1/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export const authAPI = {
   // 액세스 토큰 재발급
   async reissueAccessToken(): Promise<boolean> {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/reissue', {
+      const response = await fetch('/api/v1/auth/reissue', {
         method: 'GET',
         credentials: 'include', // 쿠키 포함
       })

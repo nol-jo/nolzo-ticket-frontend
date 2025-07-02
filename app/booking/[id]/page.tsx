@@ -86,13 +86,13 @@ export default function MyReservationsPage() {
   }, [eventId, date, time, router, params.id])
 
   async function fetchSeats(date: string, time: string): Promise<Seat[]> {
-    const res = await fetch(`http://localhost:8080/api/v1/reservations/reservation/${eventId}?date=${date}&time=${time}`)
+    const res = await fetch(`/api/v1/reservations/reservation/${eventId}?date=${date}&time=${time}`)
     if (!res.ok) throw new Error('좌석 조회 실패')
     return res.json()
   }
 
   async function fetchEvent(eventId: number): Promise<Event> {
-    const res = await fetch(`http://localhost:8080/api/v1/event/${eventId}`)
+    const res = await fetch(`/api/v1/event/${eventId}`)
     if (!res.ok) throw new Error('이벤트 조회 실패')
     return res.json()
   }
@@ -204,7 +204,7 @@ export default function MyReservationsPage() {
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
       const currentRes = await fetch(
-        `http://localhost:8080/api/v1/reservations/reservation/${eventId}?date=${date}&time=${time}`
+        `/api/v1/reservations/reservation/${eventId}?date=${date}&time=${time}`
       );
       if (!currentRes.ok) {
         throw new Error('좌석 정보를 가져오는데 실패했습니다.');
@@ -220,7 +220,7 @@ export default function MyReservationsPage() {
       }
 
       // 4. 예약(락) API 호출
-      const res = await fetch('http://localhost:8080/api/v1/reservations', {
+      const res = await fetch('/api/v1/reservations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -264,7 +264,7 @@ export default function MyReservationsPage() {
       const accessToken = getCookie('accessToken');
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
-      const res = await fetch('http://localhost:8080/api/v1/payments', {
+      const res = await fetch('/api/v1/payments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -296,7 +296,7 @@ export default function MyReservationsPage() {
       const accessToken = getCookie('accessToken');
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
-      const res = await fetch('http://localhost:8080/api/v1/payments', {
+      const res = await fetch('/api/v1/payments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
