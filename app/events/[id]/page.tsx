@@ -16,6 +16,21 @@ interface Schedule {
   showTime: string
 }
 
+interface Review {
+  id: number
+  content: string
+  rating: number
+  memberName: string
+}
+
+interface ReviewData {
+  reviewCount: number
+  averageRating: number
+  totalPages: number
+  currentPage: number
+  reviews: Review[]
+}
+
 interface Event {
   id: number
   title: string
@@ -117,6 +132,187 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
   )
 }
 
+function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClasses = {
+    sm: 'w-4 h-4',
+    md: 'w-5 h-5',
+    lg: 'w-6 h-6'
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`${sizeClasses[size]} ${
+            star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+          }`}
+        />
+      ))}
+    </div>
+  )
+}
+
+function ReviewSection({ eventId }: { eventId: number }) {
+  const [reviewData, setReviewData] = useState<ReviewData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const fetchReviews = async (page: number = 1) => {
+    try {
+      setIsLoading(true)
+
+      const response = await fetch(`/api/v1/reviews/${eventId}?page=${page}&limit=10`)
+
+      if (!response.ok) {
+        throw new Error('리뷰 데이터를 가져오는데 실패했습니다.')
+      }
+
+      const data: ReviewData = await response.json()
+      setReviewData(data)
+      setCurrentPage(data.currentPage)
+
+    } catch (err) {
+      console.error('리뷰 데이터 로딩 오류:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchReviews(1)
+  }, [eventId])
+
+  const loadPageReviews = (page: number) => {
+    fetchReviews(page)
+  }
+
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  if (!reviewData) {
+    return (
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">리뷰</h3>
+        <p className="text-gray-500 text-center py-8">리뷰 정보를 불러올 수 없습니다.</p>
+      </Card>
+    )
+  }
+
+  // 페이지네이션 버튼 생성
+  const renderPagination = () => {
+    if (!reviewData || reviewData.totalPages <= 1) return null
+
+    const totalPages = reviewData.totalPages
+    const current = reviewData.currentPage
+    const delta = 2 // 현재 페이지 앞뒤로 보여줄 페이지 수
+
+    let pages: (number | string)[] = []
+
+    // 첫 페이지
+    if (current > delta + 1) {
+      pages.push(1)
+      if (current > delta + 2) {
+        pages.push('...')
+      }
+    }
+
+    // 현재 페이지 주변
+    for (let i = Math.max(1, current - delta); i <= Math.min(totalPages, current + delta); i++) {
+      pages.push(i)
+    }
+
+    // 마지막 페이지
+    if (current < totalPages - delta) {
+      if (current < totalPages - delta - 1) {
+        pages.push('...')
+      }
+      pages.push(totalPages)
+    }
+
+    return (
+      <div className="flex justify-center items-center gap-2 mt-6 pt-4 border-t">
+        <button
+          onClick={() => loadPageReviews(current - 1)}
+          disabled={current === 1}
+          className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          이전
+        </button>
+
+        {pages.map((page, index) => (
+          <button
+            key={index}
+            onClick={() => typeof page === 'number' && loadPageReviews(page)}
+            disabled={typeof page !== 'number'}
+            className={`px-3 py-1 text-sm rounded ${
+              page === current
+                ? 'bg-blue-600 text-white'
+                : typeof page === 'number'
+                  ? 'border hover:bg-gray-50'
+                  : 'cursor-default'
+            }`}
+          >
+            {page}
+          </button>
+        ))}
+
+        <button
+          onClick={() => loadPageReviews(current + 1)}
+          disabled={current === totalPages}
+          className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          다음
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold">리뷰</h3>
+        <div className="flex items-center gap-2">
+          <StarRating rating={Math.round(reviewData.averageRating)} size="md" />
+          <span className="text-lg font-semibold">{reviewData.averageRating.toFixed(1)}</span>
+          <span className="text-gray-500">({reviewData.reviewCount.toLocaleString()}개)</span>
+        </div>
+      </div>
+
+      {reviewData.reviews.length === 0 ? (
+        <p className="text-gray-500 text-center py-8">아직 리뷰가 없습니다.</p>
+      ) : (
+        <div className="space-y-4">
+          {reviewData.reviews.map((review) => (
+            <div key={review.id} className="border-b border-gray-100 pb-4 last:border-b-0">
+              <div className="flex items-center gap-2 mb-2">
+                <StarRating rating={review.rating} size="sm" />
+                <span className="text-sm text-gray-600">{review.rating}.0</span>
+                <span className="text-sm text-gray-500 font-medium">{review.memberName}</span>
+              </div>
+              <p className="text-gray-700">{review.content}</p>
+            </div>
+          ))}
+
+          {/* 페이지네이션 */}
+          {renderPagination()}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 export default function ProductPage() {
   const router = useRouter()
   const params = useParams()
@@ -124,6 +320,7 @@ export default function ProductPage() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [event, setEvent] = useState<Event | null>(null)
+  const [reviewData, setReviewData] = useState<ReviewData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -134,14 +331,29 @@ export default function ProductPage() {
 
       try {
         setIsLoading(true)
-        const response = await fetch(`/api/v1/event/${eventId}`)
 
-        if (!response.ok) {
+        // 이벤트 정보와 리뷰 정보를 병렬로 가져오기
+        const [eventResponse, reviewResponse] = await Promise.all([
+          fetch(`/api/v1/event/${eventId}`),
+          fetch(`/api/v1/reviews/${eventId}?page=1&limit=10`)
+        ])
+
+        if (!eventResponse.ok) {
           throw new Error('데이터를 가져오는데 실패했습니다.')
         }
 
-        const data: Event = await response.json()
-        setEvent(data)
+        const eventData: Event = await eventResponse.json()
+
+        // 리뷰 데이터가 성공적으로 로드되면 이벤트 정보에 추가
+        if (reviewResponse.ok) {
+          const reviewData: ReviewData = await reviewResponse.json()
+          setReviewData(reviewData)
+          // 이벤트 객체에 리뷰 정보 추가
+          eventData.rating = reviewData.averageRating
+          eventData.reviewCount = reviewData.reviewCount
+        }
+
+        setEvent(eventData)
 
       } catch (err) {
         setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.')
@@ -224,11 +436,20 @@ export default function ProductPage() {
           </div>
           <div className="lg:col-span-1 space-y-6">
             <div>
-                <Badge variant="secondary" className={categoryClassMap[event.eventCategory]}>
-                  {categoryMap[event.eventCategory]}
-                </Badge>
+              <Badge variant="secondary" className={categoryClassMap[event.eventCategory]}>
+                {categoryMap[event.eventCategory]}
+              </Badge>
               <h1 className="text-3xl font-bold mt-2">{event.title}</h1>
               <p className="text-gray-600 mt-1">{event.description}</p>
+
+              {/* 평점 정보 추가 */}
+              {reviewData && (
+                <div className="flex items-center gap-2 mt-3">
+                  <StarRating rating={Math.round(reviewData.averageRating)} size="md" />
+                  <span className="text-lg font-semibold">{reviewData.averageRating.toFixed(1)}</span>
+                  <span className="text-gray-500">({reviewData.reviewCount}개 리뷰)</span>
+                </div>
+              )}
             </div>
             <Card className="p-6 space-y-4">
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -291,6 +512,11 @@ export default function ProductPage() {
               </Button>
             </Card>
           </div>
+        </div>
+
+        {/* 리뷰 섹션 추가 */}
+        <div className="mt-12">
+          <ReviewSection eventId={event.id} />
         </div>
       </main>
       <Footer />

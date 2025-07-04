@@ -1,7 +1,8 @@
-import type { Metadata } from 'next'
+import type {Metadata} from 'next'
 import './globals.css'
-import { Suspense } from 'react'
+import {Suspense} from 'react'
 import Loading from './Loading'
+
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'v0 App',
@@ -9,18 +10,16 @@ export const metadata: Metadata = {
   generator: 'v0.dev',
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+export default function RootLayout({children,}: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-
     <html lang="en">
-          <Suspense fallback={<Loading/>}>
-      <body>{children}</body>
-      </Suspense>
+    <body>
+    <Suspense fallback={<Loading/>}>
+      {children}
+    </Suspense>
+    </body>
     </html>
-    
   )
 }
