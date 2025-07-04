@@ -52,7 +52,7 @@ export default function MyReservationsPage() {
       // JWT 인증 확인
       const jwtUser: User | null = await authAPI.checkAndRefreshToken()
       if (!jwtUser) {
-        router.push(`/login?returnUrl=${encodeURIComponent("goods/" + params.id)}`)
+        router.push(`/login?returnUrl=${encodeURIComponent("events/" + params.id)}`)
         return
       }
     }

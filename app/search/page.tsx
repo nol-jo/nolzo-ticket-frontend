@@ -98,7 +98,7 @@ export default function SearchPage() {
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {searchResults.map((event) => (
-                        <Link key={event.id} href={`/goods/${event.id}`}>
+                        <Link key={event.id} href={`/events/${event.id}`}>
                           <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
                             <div className="aspect-[3/4] overflow-hidden">
                               <Image

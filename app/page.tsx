@@ -146,7 +146,7 @@ export default function HomePage() {
               </span>
               <h1 className="text-4xl md:text-5xl font-bold mb-4">{currentBanner.title}</h1>
               <p className="text-lg opacity-75 mb-6">{currentBanner.description}</p>
-              <Link href={`/goods/${currentBanner.id}`}>
+              <Link href={`/events/${currentBanner.id}`}>
                 <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
                   자세히 보기
                 </button>
@@ -197,7 +197,7 @@ export default function HomePage() {
             const gradientClass = gradientColors[item.category as keyof typeof gradientColors] || gradientColors['기타']
 
             return (
-              <Link key={item.id} href={`/goods/${item.id}`}>
+              <Link key={item.id} href={`/events/${item.id}`}>
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
                   <div className={`relative h-48 bg-gradient-to-br ${gradientClass}`}>
                     <div className="absolute inset-0 p-6 text-white">

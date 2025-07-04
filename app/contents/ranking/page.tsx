@@ -171,7 +171,7 @@ export default function RankingPage() {
             {/* Top 3 Rankings */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
               {top3.map((item) => (
-                <Link key={item.id} href={`/goods/${item.id}`}>
+                <Link key={item.id} href={`/events/${item.id}`}>
                   <Card className="relative overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
                     {/* Rank Badge */}
                     <div className="absolute top-4 left-4 z-10">
@@ -213,7 +213,7 @@ export default function RankingPage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">4위 ~ 10위</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {rest.map((item) => (
-                    <Link key={item.id} href={`/goods/${item.id}`}>
+                    <Link key={item.id} href={`/events/${item.id}`}>
                       <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
                         <div className="flex items-start space-x-4">
                           {/* Rank */}
