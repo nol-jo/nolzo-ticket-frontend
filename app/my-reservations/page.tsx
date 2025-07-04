@@ -14,14 +14,13 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { authAPI, getCookie, User } from "@/lib/utils"
 
-interface Seat {
-  id: number;
+interface Ticket {
+  ticketId: number;
+  ticketStatus: string;
+  eventTitle: string;
   rowName: string;
   seatNumber: number;
   seatSection: string;
-  floor: string;
-  price: number;
-  status: string;
 }
 
 interface Event {
@@ -35,7 +34,7 @@ interface Event {
 
 interface ReservationDetail {
   id: number | null;
-  seats: Seat[];
+  tickets: Ticket[];
   status: string;
   totalPrice: number;
   reservationNumber: string;
@@ -90,26 +89,34 @@ export default function MyReservationsPage() {
     fetchReservations();
   }, [router]);
 
-  const getStatusBadge = (status: string) => {
+  // 티켓 상태를 기반으로 예약 상태 결정
+  const getReservationStatus = (tickets: Ticket[]) => {
+    if (tickets.length === 0) return "UNKNOWN";
+
+    const firstTicketStatus = tickets[0].ticketStatus;
+    switch (firstTicketStatus) {
+      case "NOT_USED": return "CONFIRMED";
+      case "USED": return "COMPLETED";
+      case "CANCELLED": return "CANCELLED";
+      default: return "UNKNOWN";
+    }
+  }
+
+  const getStatusBadge = (tickets: Ticket[]) => {
+    const status = getReservationStatus(tickets);
     switch (status) {
-      case "PENDING": return <Badge className="bg-yellow-100 text-yellow-800">결제대기</Badge>
       case "CONFIRMED": return <Badge className="bg-blue-100 text-blue-800">예약완료</Badge>
-      case "CANCELLED": return <Badge className="bg-red-100 text-red-800">취소됨</Badge>
       case "COMPLETED": return <Badge className="bg-green-100 text-green-800">관람완료</Badge>
-      default: return <Badge variant="secondary">{status}</Badge>
+      case "CANCELLED": return <Badge className="bg-red-100 text-red-800">예약취소</Badge>
+      default: return <Badge variant="secondary">알 수 없음</Badge>
     }
   }
 
   const filterReservations = (status: string) => {
-    // 상태별 필터링 로직 조정
     if (status === "RESERVED") {
-      return reservations.filter(r =>
-        r.detail.status === "WAITING" ||
-        r.detail.status === "PENDING" ||
-        r.detail.status === "CONFIRMED"
-      )
+      return reservations.filter(r => getReservationStatus(r.detail.tickets) === "CONFIRMED")
     }
-    return reservations.filter(r => r.detail.status === status)
+    return reservations.filter(r => getReservationStatus(r.detail.tickets) === status)
   }
 
   const sortReservations = (list: Reservation[]) => {
@@ -127,10 +134,6 @@ export default function MyReservationsPage() {
       console.log("Cancelling reservation", reservationNumber)
       setShowModal(false)
     }
-  }
-
-  const getTotalPrice = (seats: Seat[]) => {
-    return seats.reduce((sum, seat) => sum + seat.price, 0)
   }
 
   if (!isLoggedIn) return null
@@ -162,11 +165,13 @@ export default function MyReservationsPage() {
           <Tabs defaultValue="RESERVED" className="w-full">
             <TabsList className="grid grid-cols-3">
               <TabsTrigger value="RESERVED">예약완료 ({filterReservations("RESERVED").length})</TabsTrigger>
+              <TabsTrigger value="COMPLETED">관람완료 ({filterReservations("COMPLETED").length})</TabsTrigger>
+              <TabsTrigger value="CANCELLED">예약취소 ({filterReservations("CANCELLED").length})</TabsTrigger>
             </TabsList>
             { ["RESERVED", "COMPLETED", "CANCELLED"].map(tab => (
               <TabsContent key={tab} value={tab} className="mt-6 space-y-4">
                 { sortReservations(filterReservations(tab)).length === 0
-                  ? <div className="text-center py-16"><p className="text-gray-500">{`${tab === 'RESERVED' ? '예약완료' : tab === 'COMPLETED' ? '관람완료' : '취소/환불'} 상태의 예약이 없습니다.`}</p><Button onClick={() => router.push('/')}>공연 둘러보기</Button></div>
+                  ? <div className="text-center py-16"><p className="text-gray-500">{`${tab === 'RESERVED' ? '예약완료' : tab === 'COMPLETED' ? '관람완료' : '예약취소'} 상태의 예약이 없습니다.`}</p><Button onClick={() => router.push('/')}>공연 둘러보기</Button></div>
                   : sortReservations(filterReservations(tab)).map(res => (
                     <Card key={res.detail.reservationNumber} className="p-4 hover:shadow-md">
                       <div className="flex">
@@ -182,7 +187,7 @@ export default function MyReservationsPage() {
                         <div className="flex-1 ml-6">
                           <div className="flex items-center justify-between">
                             <h3 className="text-xl font-semibold">{res.event.title}</h3>
-                            {getStatusBadge(res.detail.status)}
+                            {getStatusBadge(res.detail.tickets)}
                           </div>
                           <p className="text-sm text-gray-600 flex items-center gap-2 mt-5"><MapPin/>{res.event.venue}</p>
                           <p className="text-sm text-gray-600 flex items-center gap-2 mt-2"><Calendar/>{res.event.date}</p>
@@ -190,14 +195,14 @@ export default function MyReservationsPage() {
                         </div>
                         <div className="ml-6 w-32 flex flex-col">
                           <span className="text-2xl font-bold text-blue-600 ">
-                            {res.detail.totalPrice > 0
-                              ? res.detail.totalPrice.toLocaleString()
-                              : getTotalPrice(res.detail.seats).toLocaleString()
-                            }원
+                            {res.detail.totalPrice.toLocaleString()}원
                           </span>
                           <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => { setDetailRes(res); setShowModal(true) }}>예약상세</Button>
-                          {(res.detail.status === 'WAITING' || res.detail.status === 'PENDING') &&
+                          {getReservationStatus(res.detail.tickets) === 'CONFIRMED' &&
                             <Button size="sm" variant="destructive" className="w-full mt-2" onClick={() => handleCancel(res.detail.reservationNumber)}>예약취소</Button>
+                          }
+                          {getReservationStatus(res.detail.tickets) === 'COMPLETED' &&
+                            <Button size="sm" className="w-full mt-2" onClick={() => router.push(`/review?eventId=${res.event.id}`)}>리뷰 등록</Button>
                           }
                         </div>
                       </div>
@@ -224,16 +229,14 @@ export default function MyReservationsPage() {
               <p><strong>날짜:</strong> {detailRes.event.date} {detailRes.event.time}</p>
               <p>
                 <strong>좌석:</strong><br />
-                {detailRes.detail.seats.map(s => (<span key={`${s.rowName}-${s.seatNumber}`}>{`${s.rowName}열 ${s.seatNumber}번`}<br /></span>))}
+                {detailRes.detail.tickets.map(ticket => (
+                  <span key={ticket.ticketId}>{`${ticket.rowName}열 ${ticket.seatNumber}번 (${ticket.seatSection})`}<br /></span>
+                ))}
               </p>
               <p><strong>예약번호:</strong> {detailRes.detail.reservationNumber}</p>
               <p><strong>결제방법:</strong> 신용카드</p>
               <p><strong>예약일:</strong> {new Date(detailRes.detail.createdAt).toLocaleString()}</p>
-              <p><strong>총 가격:</strong> {
-                detailRes.detail.totalPrice > 0
-                  ? detailRes.detail.totalPrice.toLocaleString()
-                  : getTotalPrice(detailRes.detail.seats).toLocaleString()
-              }원</p>
+              <p><strong>총 가격:</strong> {detailRes.detail.totalPrice.toLocaleString()}원</p>
             </div>
             <div className="p-4 text-right border-t">
               <Button onClick={() => setShowModal(false)}>닫기</Button>

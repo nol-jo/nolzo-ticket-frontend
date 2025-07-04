@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import {Search, Siren, UserRoundPlus, TicketCheck, UserRoundX, UserRoundSearch, UserRound} from "lucide-react"
+import {Search, Siren, UserRoundPlus, TicketCheck, UserRoundX, UserRoundSearch, UserRound, Star} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -99,6 +99,14 @@ export default function Header() {
       router.push(`/login?returnUrl=${encodeURIComponent("/my-reservations")}`)
     } else {
       window.location.href = "/my-reservations";
+    }
+  }
+
+  const handleMyReviewsClick = () => {
+    if (!isLoggedIn) {
+      router.push(`/login?returnUrl=${encodeURIComponent("/my-reviews")}`)
+    } else {
+      window.location.href = "/my-reviews";
     }
   }
 
@@ -236,10 +244,6 @@ export default function Header() {
                       <UserRoundPlus className="w-4 h-4 mb-1" />
                       회원가입
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleMyReservationClick}>
-                      <TicketCheck className="w-4 h-4 mb-1" />
-                      내 예약
-                    </Button>
                   </>
                 ) : (
                   <>
@@ -251,6 +255,11 @@ export default function Header() {
                     <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleMyReservationClick}>
                       <TicketCheck className="w-4 h-4 mb-1" />
                       내 예약
+                    </Button>
+
+                    <Button variant="ghost" size="sm" className="text-gray-600" onClick={handleMyReviewsClick}>
+                      <Star className="w-4 h-4 mb-1" />
+                      작성한 리뷰
                     </Button>
 
                     <Button

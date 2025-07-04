@@ -8,5 +8,5 @@ interface PerformancePageProps {
 
 export default function PerformancePage({ params }: PerformancePageProps) {
   // 기존 performance 경로를 events 경로로 리다이렉트
-  redirect(`/goods/${params.id}`)
+  redirect(`/events/${params.id}`)
 }
