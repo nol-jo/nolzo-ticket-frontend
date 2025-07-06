@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Calendar, MapPin, Clock, RefreshCw, Star, Edit3, Trash2 } from "lucide-react"
+import {RefreshCw, Star, Edit3, Trash2, SearchX} from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,21 +15,9 @@ import { authAPI, getSessionToken, User } from "@/lib/utils"
 interface Event {
   id: number;
   title: string;
-  venue: string;
-  description: string;
   posterImageUrl?: string;
   startDate: string;
   endDate: string;
-  schedules?: Schedule[];
-  eventCategory: string;
-  runtime: number;
-  ageLimit: number;
-}
-
-interface Schedule {
-  id: number;
-  date: string;
-  time: string;
 }
 
 interface Review {
@@ -39,7 +27,6 @@ interface Review {
   eventId: number;
   createdAt: string;
   updatedAt?: string;
-  event?: Event; // 선택적 필드로 변경
 }
 
 export default function MyReviewsPage() {
@@ -252,22 +239,6 @@ export default function MyReviewsPage() {
                           <h3 className="text-xl font-semibold mb-2">
                             {event?.title || '공연 정보 없음'}
                           </h3>
-                          {event && (
-                            <div className="space-y-1 mb-4">
-                              <p className="text-sm text-gray-600 flex items-center gap-2">
-                                <MapPin className="w-4 h-4"/>
-                                {event.venue}
-                              </p>
-                              <p className="text-sm text-gray-600 flex items-center gap-2">
-                                <Calendar className="w-4 h-4"/>
-                                {event.startDate} ~ {event.endDate}
-                              </p>
-                              <p className="text-sm text-gray-600 flex items-center gap-2">
-                                <Clock className="w-4 h-4"/>
-                                {event.runtime}분
-                              </p>
-                            </div>
-                          )}
                         </div>
 
                         {/* 액션 버튼 */}
@@ -278,8 +249,8 @@ export default function MyReviewsPage() {
                             onClick={() => handleEdit(review.eventId)}
                             className="flex items-center gap-1"
                           >
-                            <Edit3 className="w-4 h-4"/>
-                            수정
+                            <SearchX className="w-4 h-4"/>
+                            자세히
                           </Button>
                           <Button
                             size="sm"

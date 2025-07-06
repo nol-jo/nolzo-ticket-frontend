@@ -13,10 +13,15 @@ import { authAPI, getSessionToken, User } from "@/lib/utils"
 interface Event {
   id: number;
   title: string;
-  venue: string;
-  date: string;
-  time: string;
   image: string | null;
+}
+
+interface Review {
+  id: number;
+  rating: number;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export default function ReviewWritePage() {
@@ -30,7 +35,7 @@ export default function ReviewWritePage() {
   const [reviewText, setReviewText] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasExistingReview, setHasExistingReview] = useState(false)
-  const [existingReview, setExistingReview] = useState<any>(null)
+  const [existingReview, setExistingReview] = useState<Review | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
 
   const eventId = searchParams.get('eventId')
@@ -67,8 +72,8 @@ export default function ReviewWritePage() {
         const eventData = await eventRes.json();
         setEvent(eventData);
 
-        // 기존 리뷰 존재 여부 확인
-        const reviewRes = await fetch(`/api/v1/reviews/check?eventId=${eventId}`, {
+        // 기존 리뷰 조회 (존재 여부 확인 + 리뷰 데이터 가져오기를 한 번에)
+        const reviewRes = await fetch(`/api/v1/reviews/events/${eventId}/my`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
@@ -76,23 +81,17 @@ export default function ReviewWritePage() {
 
         if (reviewRes.ok) {
           const reviewData = await reviewRes.json();
-          if (reviewData.exists) {
+          if (reviewData && reviewData.id) {
             setHasExistingReview(true);
-
-            // 기존 리뷰 정보 가져오기
-            const existingReviewRes = await fetch(`/api/v1/reviews/my?eventId=${eventId}`, {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`
-              }
-            });
-
-            if (existingReviewRes.ok) {
-              const existingReviewData = await existingReviewRes.json();
-              setExistingReview(existingReviewData);
-              setRating(existingReviewData.rating);
-              setReviewText(existingReviewData.content);
-            }
+            setExistingReview(reviewData);
+            setRating(reviewData.rating);
+            setReviewText(reviewData.content);
           }
+        } else if (reviewRes.status === 500) {
+          setHasExistingReview(false);
+        } else {
+          // 다른 에러인 경우
+          console.error("Failed to fetch review:", reviewRes.status);
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -138,7 +137,9 @@ export default function ReviewWritePage() {
 
     try {
       const accessToken = getSessionToken('accessToken');
-      const url = hasExistingReview ? `/api/v1/reviews/${existingReview.id}` : '/api/v1/reviews';
+      const url = hasExistingReview && existingReview
+        ? `/api/v1/reviews/${existingReview.id}`
+        : '/api/v1/reviews';
       const method = hasExistingReview ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -160,7 +161,7 @@ export default function ReviewWritePage() {
 
       const message = hasExistingReview ? '리뷰가 성공적으로 수정되었습니다.' : '리뷰가 성공적으로 등록되었습니다.';
       alert(message);
-      router.push('/my-reservations');
+      router.push('/review?eventId=' + eventId);
     } catch (error) {
       console.error("Failed to submit review:", error);
       const errorMessage = hasExistingReview ? '리뷰 수정에 실패했습니다. 다시 시도해주세요.' : '리뷰 등록에 실패했습니다. 다시 시도해주세요.';
@@ -200,7 +201,7 @@ export default function ReviewWritePage() {
   }
 
   // 이미 리뷰가 존재하는 경우
-  if (hasExistingReview && !isEditMode) {
+  if (hasExistingReview && !isEditMode && existingReview) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -212,8 +213,6 @@ export default function ReviewWritePage() {
           <Card className="p-6">
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="text-lg font-semibold mb-2">{event.title}</h3>
-              <p className="text-sm text-gray-600">장소: {event.venue}</p>
-              <p className="text-sm text-gray-600">날짜: {event.date} {event.time}</p>
             </div>
 
             <div className="mb-6">
@@ -227,7 +226,7 @@ export default function ReviewWritePage() {
                     <Star
                       key={star}
                       className={`w-6 h-6 ${
-                        star <= (existingReview?.rating || 0)
+                        star <= existingReview.rating
                           ? 'fill-yellow-400 text-yellow-400'
                           : 'text-gray-300'
                       }`}
@@ -235,7 +234,7 @@ export default function ReviewWritePage() {
                   ))}
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  {existingReview?.rating}점
+                  {existingReview.rating}점
                 </p>
               </div>
 
@@ -243,11 +242,14 @@ export default function ReviewWritePage() {
               <div className="mb-6">
                 <label className="text-base font-medium mb-2 block">리뷰 내용</label>
                 <div className="p-3 bg-gray-50 rounded-md border">
-                  <p className="text-gray-800">{existingReview?.content}</p>
+                  <p className="text-gray-800">{existingReview.content}</p>
                 </div>
-                {existingReview?.createdAt && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    작성일: {new Date(existingReview.createdAt).toLocaleString()}
+                <p className="text-sm text-gray-500 mt-2">
+                  작성일: {new Date(existingReview.createdAt).toLocaleString()}
+                </p>
+                {existingReview.updatedAt && existingReview.updatedAt !== existingReview.createdAt && (
+                  <p className="text-sm text-gray-500">
+                    수정일: {new Date(existingReview.updatedAt).toLocaleString()}
                   </p>
                 )}
               </div>
@@ -287,7 +289,6 @@ export default function ReviewWritePage() {
           {/* 공연 정보 */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">제목: {event.title}</h3>
-            <p className="text-sm text-gray-600">장소: {event.venue}</p>
           </div>
 
           {/* 별점 선택 */}
@@ -353,6 +354,11 @@ export default function ReviewWritePage() {
               onClick={() => {
                 if (hasExistingReview) {
                   setIsEditMode(false);
+                  // 수정 취소 시 기존 데이터로 복원
+                  if (existingReview) {
+                    setRating(existingReview.rating);
+                    setReviewText(existingReview.content);
+                  }
                 } else {
                   router.push('/my-reservations');
                 }
