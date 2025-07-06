@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
-import {authAPI, getCookie, deleteCookie, User} from "@/lib/utils"
+import {authAPI, getSessionToken, removeSessionToken, User} from "@/lib/utils"
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 
 interface UserProfile {
@@ -41,7 +41,7 @@ export default function MyProfilePage() {
       }
 
       // 액세스 토큰 헤더에 포함
-      const accessToken = getCookie('accessToken');
+      const accessToken = getSessionToken('accessToken');
       // 프로필 정보 API 호출
       try {
         const res = await fetch(
@@ -91,7 +91,7 @@ export default function MyProfilePage() {
     }
 
     try {
-      const accessToken = getCookie('accessToken');
+      const accessToken = getSessionToken('accessToken');
       const response = await fetch('/api/v1/member/password', {
         method: 'POST',
         headers: {
@@ -123,7 +123,7 @@ export default function MyProfilePage() {
     if (confirm("정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
       try {
         // 서버에 로그아웃/계정삭제 요청
-        const accessToken = getCookie('accessToken');
+        const accessToken = getSessionToken('accessToken');
         const response = await fetch('/api/v1/member', {
           method: 'DELETE',
           headers: {
@@ -135,7 +135,7 @@ export default function MyProfilePage() {
           await authAPI.logout() // 서버 세션 및 쿠키 무효화
 
           // 클라이언트 측 쿠키도 정리
-          deleteCookie('accessToken')
+          removeSessionToken('accessToken')
 
           alert("계정이 삭제되었습니다.")
           router.push("/")

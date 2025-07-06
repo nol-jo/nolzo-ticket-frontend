@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
-import { authAPI, getCookie, User } from "@/lib/utils"
+import { authAPI, getSessionToken, User } from "@/lib/utils"
 
 interface Event {
   id: number;
@@ -51,7 +51,7 @@ export default function ReviewWritePage() {
       }
 
       try {
-        const accessToken = getCookie('accessToken');
+        const accessToken = getSessionToken('accessToken');
 
         // 공연 정보 조회
         const eventRes = await fetch(`/api/v1/event/${eventId}`, {
@@ -137,7 +137,7 @@ export default function ReviewWritePage() {
     setIsSubmitting(true);
 
     try {
-      const accessToken = getCookie('accessToken');
+      const accessToken = getSessionToken('accessToken');
       const url = hasExistingReview ? `/api/v1/reviews/${existingReview.id}` : '/api/v1/reviews';
       const method = hasExistingReview ? 'PUT' : 'POST';
 

@@ -3,7 +3,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {useParams, useRouter, useSearchParams} from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/header";
-import {authAPI, getCookie, User} from "@/lib/utils";
+import {authAPI, getSessionToken, User} from "@/lib/utils";
 
 type SeatStatus = "AVAILABLE" | "RESERVED" | "WAITING" | "SELECTED";
 
@@ -200,7 +200,7 @@ export default function MyReservationsPage() {
     }
 
     try {
-      const accessToken = getCookie('accessToken');
+      const accessToken = getSessionToken('accessToken');
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
       const currentRes = await fetch(
@@ -261,7 +261,7 @@ export default function MyReservationsPage() {
   const handlePayment = async () => {
     try {
       // JWT 토큰 가져오기
-      const accessToken = getCookie('accessToken');
+      const accessToken = getSessionToken('accessToken');
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
       const res = await fetch('/api/v1/payments', {
@@ -293,7 +293,7 @@ export default function MyReservationsPage() {
 
   const handleCancel = async () => {
     try {
-      const accessToken = getCookie('accessToken');
+      const accessToken = getSessionToken('accessToken');
       if (!accessToken) throw new Error('로그인이 필요합니다.');
 
       const res = await fetch('/api/v1/payments', {

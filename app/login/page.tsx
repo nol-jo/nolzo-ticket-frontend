@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { authAPI } from '@/lib/utils'
 
 interface LoginRequest {
   email: string
@@ -31,31 +32,22 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // 쿠키 포함
-        body: JSON.stringify(loginData),
-      })
+      // authAPI.login 사용 (SessionStorage 자동 저장)
+      const { success, user } = await authAPI.login(loginData)
 
-      if (response.ok) {
+      if (success) {
+        console.log('로그인 성공:', user)
+
         // 로그인 성공 이벤트 발생 (Header 컴포넌트에서 감지)
-        window.dispatchEvent(new CustomEvent('loginSuccess'))
+        window.dispatchEvent(new CustomEvent('loginSuccess', {
+          detail: { user }
+        }))
 
         // 리다이렉트
         const returnUrl = searchParams.get('returnUrl') || '/'
         router.push(returnUrl)
       } else {
-        // 에러 응답 처리
-        if (response.status === 401) {
-          setError('이메일 또는 비밀번호가 올바르지 않습니다.')
-        } else if (response.status === 400) {
-          setError('입력 정보를 확인해주세요.')
-        } else {
-          setError('로그인에 실패했습니다. 다시 시도해주세요.')
-        }
+        setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.')
       }
     } catch (error) {
       console.error('Login error:', error)

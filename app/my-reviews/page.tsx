@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
-import { authAPI, getCookie, User } from "@/lib/utils"
+import { authAPI, getSessionToken, User } from "@/lib/utils"
 
 interface Event {
   id: number;
@@ -60,7 +60,7 @@ export default function MyReviewsPage() {
       setIsLoggedIn(true);
 
       try {
-        const accessToken = getCookie('accessToken');
+        const accessToken = getSessionToken('accessToken');
         const res = await fetch("/api/v1/reviews/my", {
           headers: {
             'Authorization': `Bearer ${accessToken}`
@@ -136,7 +136,7 @@ export default function MyReviewsPage() {
     }
 
     try {
-      const accessToken = getCookie('accessToken');
+      const accessToken = getSessionToken('accessToken');
       const res = await fetch(`/api/v1/reviews/${reviewId}`, {
         method: 'DELETE',
         headers: {

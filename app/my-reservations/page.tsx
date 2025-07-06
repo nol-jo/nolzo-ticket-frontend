@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
-import { authAPI, getCookie, User } from "@/lib/utils"
+import { authAPI, getSessionToken, User } from "@/lib/utils"
 
 interface Ticket {
   ticketId: number;
@@ -66,7 +66,7 @@ export default function MyReservationsPage() {
       setIsLoggedIn(true);
 
       try {
-        const accessToken = getCookie('accessToken');
+        const accessToken = getSessionToken('accessToken');
         const res = await fetch("/api/v1/reservations", {
           headers: {
             'Authorization': `Bearer ${accessToken}`
