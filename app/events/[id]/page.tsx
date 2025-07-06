@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { Calendar, MapPin, Clock, Users, ChevronLeft, ChevronRight, Star } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +10,7 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { useParams, useRouter } from "next/navigation"
 
+// Types
 interface Schedule {
   id: number
   showDate: string
@@ -20,7 +21,14 @@ interface Review {
   id: number
   content: string
   rating: number
+  author: string
   createdAt: string
+}
+
+interface ReviewDetail {
+  averageRating: number
+  reviewCount: number
+  reviews: Review[]
 }
 
 interface Event {
@@ -39,21 +47,40 @@ interface Event {
   schedules: Schedule[]
 }
 
-const categoryMap: Record<string, string> = {
+// Constants
+const CATEGORY_MAP: Record<string, string> = {
   CONCERT: "콘서트",
   MUSICAL: "뮤지컬",
   PLAY: "연극",
 }
 
-const categoryClassMap: Record<string, string> = {
+const CATEGORY_CLASS_MAP: Record<string, string> = {
   CONCERT: "bg-blue-100 text-blue-800",
   PLAY: "bg-red-100 text-red-800",
   MUSICAL: "bg-yellow-100 text-yellow-800",
 }
 
-type BookingCalendarProps = {
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+// Utility functions
+const formatDate = (year: number, month: number, day: number): string =>
+  `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+
+const formatDisplayDate = (dateString: string): string => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+const formatTimeDisplay = (time: string): string => time.slice(0, 5)
+
+// Components
+interface BookingCalendarProps {
   selected: string | null
-  onSelect: (d: string) => void
+  onSelect: (date: string) => void
   schedules: Schedule[]
 }
 
@@ -69,54 +96,91 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1)
   ]
 
-  const formatDate = (day: number) =>
-    `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+  const isAvailable = useCallback((day: number): boolean => {
+    const dateStr = formatDate(year, month, day)
+    return schedules.some(schedule => schedule.showDate === dateStr)
+  }, [year, month, schedules])
 
-  const isAvailable = (day: number) => {
-    const dateStr = formatDate(day)
-    return schedules.some(sch => sch.showDate === dateStr)
+  const handlePrevMonth = () => {
+    if (month === 0) {
+      setMonth(11)
+      setYear(prev => prev - 1)
+    } else {
+      setMonth(prev => prev - 1)
+    }
+  }
+
+  const handleNextMonth = () => {
+    if (month === 11) {
+      setMonth(0)
+      setYear(prev => prev + 1)
+    } else {
+      setMonth(prev => prev + 1)
+    }
+  }
+
+  const handleDateSelect = (day: number) => {
+    const dateStr = formatDate(year, month, day)
+    if (isAvailable(day)) {
+      onSelect(dateStr)
+    }
   }
 
   return (
     <div className="border rounded-xl p-4 bg-gray-50">
       <div className="flex justify-between items-center mb-2">
-        <button onClick={() => {
-          if (month === 0) {
-            setMonth(11);
-            setYear(y => y - 1)
-          } else setMonth(m => m - 1)
-        }}><ChevronLeft /></button>
-        <strong>{year}. {String(month + 1).padStart(2, "0")}</strong>
-        <button onClick={() => {
-          if (month === 11) {
-            setMonth(0);
-            setYear(y => y + 1)
-          } else setMonth(m => m + 1)
-        }}><ChevronRight /></button>
+        <button
+          onClick={handlePrevMonth}
+          className="p-1 hover:bg-gray-200 rounded"
+          aria-label="이전 달"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h3 className="font-semibold text-lg">
+          {year}. {String(month + 1).padStart(2, "0")}
+        </h3>
+        <button
+          onClick={handleNextMonth}
+          className="p-1 hover:bg-gray-200 rounded"
+          aria-label="다음 달"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
+
       <div className="grid grid-cols-7 text-center text-sm text-gray-500 mb-2">
-        {['일', '월', '화', '수', '목', '금', '토'].map(d => <div key={d}>{d}</div>)}
+        {WEEKDAYS.map(day => (
+          <div key={day} className="py-1">{day}</div>
+        ))}
       </div>
+
       <div className="grid grid-cols-7 gap-1 text-sm">
-        {dates.map((d, idx) => {
-          const day = d
-          const dateStr = day !== null ? formatDate(day) : null
-          const available = day !== null && isAvailable(day)
-          const isActive = day !== null && selected === dateStr
-          const hoverClass = available && !isActive ? "hover:bg-gray-100" : ""
+        {dates.map((day, idx) => {
+          if (day === null) {
+            return <div key={`empty-${idx}`} className="aspect-square" />
+          }
+
+          const dateStr = formatDate(year, month, day)
+          const available = isAvailable(day)
+          const isActive = selected === dateStr
 
           return (
             <button
-              key={idx}
+              key={day}
               disabled={!available}
-              onClick={() => day !== null && available && onSelect(dateStr!)}
-              className={
-                `aspect-square rounded text-center ` +
-                `${available ? "text-black" : "text-gray-300"} ` +
-                `${hoverClass} ` +
-                `${isActive ? "bg-blue-600 text-white font-bold" : ""}`
+              onClick={() => handleDateSelect(day)}
+              className={`
+                aspect-square rounded text-center transition-colors
+                ${available
+                ? 'text-black hover:bg-gray-100 cursor-pointer'
+                : 'text-gray-300 cursor-not-allowed'
               }
-            >{day || ''}</button>
+                ${isActive ? 'bg-blue-600 text-white font-bold hover:bg-blue-700' : ''}
+              `}
+              aria-label={`${year}년 ${month + 1}월 ${day}일 ${available ? '예약 가능' : '예약 불가'}`}
+            >
+              {day}
+            </button>
           )
         })}
       </div>
@@ -124,7 +188,12 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
   )
 }
 
-function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md' | 'lg' }) {
+interface StarRatingProps {
+  rating: number
+  size?: 'sm' | 'md' | 'lg'
+}
+
+function StarRating({ rating, size = 'sm' }: StarRatingProps) {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-5 h-5',
@@ -132,7 +201,7 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" role="img" aria-label={`${rating}점 평점`}>
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
@@ -145,97 +214,147 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md
   )
 }
 
-function ReviewSection({ eventId }: { eventId: number }) {
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [averageRating, setAverageRating] = useState(0)
+interface ReviewSectionProps {
+  eventId: number
+}
 
-  const fetchReviews = async () => {
+function ReviewSection({ eventId }: ReviewSectionProps) {
+  const [reviewInfo, setReviewInfo] = useState<ReviewDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchReviews = useCallback(async () => {
     try {
       setIsLoading(true)
+      setError(null)
 
-      const response = await fetch(`/api/v1/reviews/event/${eventId}`)
-
+      const response = await fetch(`/api/v1/reviews/events/${eventId}`)
       if (!response.ok) {
         throw new Error('리뷰 데이터를 가져오는데 실패했습니다.')
       }
 
-      const data: Review[] = await response.json()
-      setReviews(data)
-
-      // 평균 평점 계산
-      if (data.length > 0) {
-        const avgRating = data.reduce((sum, review) => sum + review.rating, 0) / data.length
-        setAverageRating(avgRating)
-      }
-
+      const data: ReviewDetail = await response.json()
+      setReviewInfo(data)
     } catch (err) {
       console.error('리뷰 데이터 로딩 오류:', err)
+      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [eventId])
 
   useEffect(() => {
     fetchReviews()
-  }, [eventId])
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  if (isLoading) {
-    return (
-      <Card className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          </div>
-        </div>
-      </Card>
-    )
-  }
+  }, [fetchReviews])
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold">리뷰</h3>
-        <div className="flex items-center gap-2">
-          <StarRating rating={Math.round(averageRating)} size="md" />
-          <span className="text-lg font-semibold">{averageRating.toFixed(1)}</span>
-          <span className="text-gray-500">({reviews.length.toLocaleString()}개)</span>
-        </div>
-      </div>
-
-      {reviews.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">아직 리뷰가 없습니다.</p>
-      ) : (
-        <div className="space-y-4">
-          {reviews.map((review) => (
-            <div key={review.id} className="border-b border-gray-100 pb-4 last:border-b-0">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <StarRating rating={review.rating} size="sm" />
-                  <span className="text-sm text-gray-600">{review.rating}.0</span>
-                </div>
-                <span className="text-sm text-gray-500">{formatDate(review.createdAt)}</span>
-              </div>
-              <p className="text-gray-700">{review.content}</p>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">리뷰</h2>
+      <Card className="p-6">
+        {isLoading ? (
+          <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
             </div>
-          ))}
-        </div>
-      )}
-    </Card>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={fetchReviews} variant="outline" size="sm">
+              다시 시도
+            </Button>
+          </div>
+        ) : !reviewInfo || reviewInfo.reviewCount === 0 ? (
+          <p className="text-gray-500 text-center py-8">아직 리뷰가 없습니다.</p>
+        ) : (
+          <>
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b">
+              <div className="flex items-center gap-2">
+                <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+                <span className="text-2xl font-bold">{reviewInfo.averageRating.toFixed(1)}</span>
+              </div>
+              <div className="text-gray-600">
+                총 {reviewInfo.reviewCount.toLocaleString()}개의 리뷰
+              </div>
+            </div>
+            <div className="space-y-6">
+              {reviewInfo.reviews.map((review) => (
+                <article key={review.id} className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    {/* You can add user avatars here if available */}
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold">
+                      {review.author.charAt(0)}
+                    </div>
+                  </div>
+                  <div className="flex-grow">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{review.author}</p>
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <StarRating rating={review.rating} size="sm" />
+                          <span>·</span>
+                          <time dateTime={review.createdAt}>
+                            {formatDisplayDate(review.createdAt)}
+                          </time>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-gray-700">{review.content}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+      </Card>
+    </div>
   )
 }
 
+interface LoadingSpinnerProps {
+  message?: string
+}
+
+function LoadingSpinner({ message = "데이터를 불러오는 중..." }: LoadingSpinnerProps) {
+  return (
+    <div className="min-h-screen bg-white">
+      <Header />
+      <section className="relative h-[500px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">{message}</p>
+        </div>
+      </section>
+      <Footer />
+    </div>
+  )
+}
+
+interface ErrorDisplayProps {
+  error: string
+  onRetry: () => void
+}
+
+function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
+  return (
+    <div className="min-h-screen bg-white">
+      <Header />
+      <section className="relative h-[500px] flex items-center justify-center">
+        <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200">
+          <p className="text-red-600 mb-4">⚠️ {error}</p>
+          <Button onClick={onRetry} variant="outline">
+            다시 시도
+          </Button>
+        </div>
+      </section>
+      <Footer />
+    </div>
+  )
+}
+
+// Main component
 export default function ProductPage() {
   const router = useRouter()
   const params = useParams()
@@ -246,86 +365,75 @@ export default function ProductPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const eventId = Array.isArray(params.id) ? params.id[0] : params.id;
-      if (!eventId) return
+  const eventId = Array.isArray(params.id) ? params.id[0] : params.id
 
-      try {
-        setIsLoading(true)
+  const fetchEventData = useCallback(async () => {
+    if (!eventId) return
 
-        const eventResponse = await fetch(`/api/v1/event/${eventId}`)
+    try {
+      setIsLoading(true)
+      setError(null)
 
-        if (!eventResponse.ok) {
-          throw new Error('데이터를 가져오는데 실패했습니다.')
-        }
-
-        const eventData: Event = await eventResponse.json()
-        setEvent(eventData)
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.')
-      } finally {
-        setIsLoading(false)
+      const response = await fetch(`/api/v1/event/${eventId}`)
+      if (!response.ok) {
+        throw new Error('이벤트 데이터를 가져오는데 실패했습니다.')
       }
+
+      const eventData: Event = await response.json()
+      setEvent(eventData)
+    } catch (err) {
+      console.error('이벤트 데이터 로딩 오류:', err)
+      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.')
+    } finally {
+      setIsLoading(false)
     }
+  }, [eventId])
 
-    fetchData()
-  }, [params.id])
+  useEffect(() => {
+    fetchEventData()
+  }, [fetchEventData])
 
-  const times = selectedDate
-    ? (event?.schedules ?? [])
-      .filter(sch => sch.showDate === selectedDate)
-      .map(sch => sch.showTime)
+  const availableTimes = selectedDate && event
+    ? event.schedules
+      .filter(schedule => schedule.showDate === selectedDate)
+      .map(schedule => schedule.showTime)
     : []
 
-  const handleBook = async () => {
-    if (!selectedDate || !selectedTime || !event) return
-    setLoading(true);
-    const queryParams = new URLSearchParams({
-      date: selectedDate,
-      time: selectedTime
-    }).toString()
-    router.push(`/booking/${event.id}?${queryParams}`)
+  const handleDateSelect = (date: string) => {
+    setSelectedDate(date)
+    setSelectedTime(null) // Reset selected time when date changes
   }
 
+  const handleBooking = async () => {
+    if (!selectedDate || !selectedTime || !event) return
+
+    setLoading(true)
+    try {
+      const queryParams = new URLSearchParams({
+        date: selectedDate,
+        time: selectedTime
+      }).toString()
+
+      router.push(`/booking/${event.id}?${queryParams}`)
+    } catch (err) {
+      console.error('예매 페이지 이동 오류:', err)
+      setLoading(false)
+    }
+  }
+
+  const getAgeDisplay = (ageLimit: number): string =>
+    ageLimit === 0 ? '전체이용가' : `${ageLimit}세 이상`
+
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        <section className="relative h-[500px] flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p>데이터를 불러오는 중...</p>
-          </div>
-        </section>
-        <Footer />
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        <section className="relative h-[500px] flex items-center justify-center">
-          <div className="text-white text-center p-4 bg-red-800 rounded-lg">
-            <p className="mb-4">⚠️ {error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
-            >
-              다시 시도
-            </button>
-          </div>
-        </section>
-        <Footer />
-      </div>
-    )
+    return <ErrorDisplay error={error} onRetry={fetchEventData} />
   }
 
   if (!event) {
-    return null;
+    return <LoadingSpinner message="이벤트 정보를 찾을 수 없습니다." />
   }
 
   return (
@@ -333,93 +441,115 @@ export default function ProductPage() {
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Poster Image */}
           <div className="lg:col-span-1">
-            <Image
-              src={event.posterImageUrl}
-              alt={event.title}
-              width={400}
-              height={533}
-              className="rounded-lg object-cover w-full"
-            />
+            <div className="relative aspect-[3/4] w-full">
+              <Image
+                src={event.posterImageUrl}
+                alt={`${event.title} 포스터`}
+                fill
+                className="rounded-lg object-cover"
+                priority
+              />
+            </div>
           </div>
+
+          {/* Event Information */}
           <div className="lg:col-span-1 space-y-6">
             <div>
-              <Badge variant="secondary" className={categoryClassMap[event.eventCategory]}>
-                {categoryMap[event.eventCategory]}
+              <Badge
+                variant="secondary"
+                className={CATEGORY_CLASS_MAP[event.eventCategory]}
+              >
+                {CATEGORY_MAP[event.eventCategory]}
               </Badge>
-              <h1 className="text-3xl font-bold mt-2">{event.title}</h1>
-              <p className="text-gray-600 mt-1">{event.description}</p>
-
-              <div className="flex items-center gap-2 mt-3">
-                <StarRating rating={Math.round(event.rating)} size="md" />
-                <span className="text-lg font-semibold">{event.rating.toFixed(1)}</span>
-                <span className="text-gray-500">({event.reviewCount.toLocaleString()}개 리뷰)</span>
-              </div>
+              <h1 className="text-3xl font-bold mt-2 mb-2">{event.title}</h1>
+              <p className="text-gray-600 leading-relaxed">{event.description}</p>
             </div>
+
             <Card className="p-6 space-y-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" /><span>{event.venue}</span>
+              <div className="flex items-center gap-3 text-gray-700">
+                <MapPin className="w-5 h-5 text-gray-500" />
+                <span>{event.venue}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="w-4 h-4" /><span>{event.startDate} ~ {event.endDate}</span>
+              <div className="flex items-center gap-3 text-gray-700">
+                <Calendar className="w-5 h-5 text-gray-500" />
+                <span>{event.startDate} ~ {event.endDate}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="w-4 h-4" /><span>{event.runtime}분</span>
+              <div className="flex items-center gap-3 text-gray-700">
+                <Clock className="w-5 h-5 text-gray-500" />
+                <span>{event.runtime}분</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Users className="w-4 h-4" /><span>{event.ageLimit === 0 ? '전체이용가' : `${event.ageLimit}세 이상`}</span>
+              <div className="flex items-center gap-3 text-gray-700">
+                <Users className="w-5 h-5 text-gray-500" />
+                <span>{getAgeDisplay(event.ageLimit)}</span>
               </div>
             </Card>
           </div>
+
+          {/* Booking Section */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="p-6">
-              <h3 className="flex items-baseline justify-between font-semibold text-lg mb-4">
-                <span>관람일</span>
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 className="font-semibold text-lg">관람일 선택</h3>
                 {selectedDate && (
-                  <span className="text-black">{selectedDate.replace(/-/g, '.')}</span>
+                  <span className="text-blue-600 font-medium">
+                    {selectedDate.replace(/-/g, '.')}
+                  </span>
                 )}
-              </h3>
+              </div>
+
               <BookingCalendar
                 selected={selectedDate}
-                onSelect={(d) => {
-                  setSelectedDate(d);
-                  setSelectedTime(null);
-                }}
-                schedules={event.schedules ?? []}
+                onSelect={handleDateSelect}
+                schedules={event.schedules}
               />
+
               {selectedDate && (
-                <div className="mt-4 border-t pt-4 space-y-2">
-                  <h4 className="text-lg font-semibold">회차</h4>
-                  {times.length > 0 ? (
-                    times.map((t, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setSelectedTime(t)}
-                        className={`w-full text-center font-semibold px-4 py-2 rounded mb-2 ${
-                          selectedTime === t ? 'bg-blue-600 text-white' : 'border border-blue-500 text-blue-600 hover:bg-blue-50'
-                        }`}
-                      >{`${idx + 1}회 ${t.slice(0, 5)}`}</button>
-                    ))
+                <div className="mt-6 pt-4 border-t">
+                  <h4 className="font-semibold text-lg mb-3">시간 선택</h4>
+                  {availableTimes.length > 0 ? (
+                    <div className="space-y-2">
+                      {availableTimes.map((time, idx) => (
+                        <button
+                          key={`${time}-${idx}`}
+                          onClick={() => setSelectedTime(time)}
+                          className={`
+                            w-full px-4 py-3 rounded-lg font-medium transition-colors
+                            ${selectedTime === time
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-blue-500 text-blue-600 hover:bg-blue-50'
+                          }
+                          `}
+                        >
+                          {`${idx + 1}회 ${formatTimeDisplay(time)}`}
+                        </button>
+                      ))}
+                    </div>
                   ) : (
-                    <p className="text-center text-gray-500">선택 가능한 회차가 없습니다.</p>
+                    <p className="text-center text-gray-500 py-4">
+                      선택 가능한 시간이 없습니다.
+                    </p>
                   )}
                 </div>
               )}
             </Card>
+
             <Card className="p-6">
               <h3 className="font-semibold text-lg mb-4">예매하기</h3>
               <Button
-                onClick={handleBook}
+                onClick={handleBooking}
                 disabled={!selectedDate || !selectedTime || loading}
-                className="w-full text-lg font-semibold py-3 disabled:bg-gray-300"
+                className="w-full text-lg font-semibold py-3"
+                size="lg"
               >
-                {loading ? '예매 중...' : '예매하기'}
+                {loading ? '예매 처리 중...' : '예매하기'}
               </Button>
             </Card>
           </div>
         </div>
 
-        {/* 리뷰 섹션 */}
+        {/* Reviews Section */}
         <div className="mt-12">
           <ReviewSection eventId={event.id} />
         </div>
