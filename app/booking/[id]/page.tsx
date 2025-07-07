@@ -403,7 +403,7 @@ export default function MyReservationsPage() {
       <div className="bg-white shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center p-4">
           <button
-            onClick={() => router.push(`/goods/${eventId}`)}
+            onClick={() => router.push(`/events/${eventId}`)}
             className="text-gray-800 font-medium"
           >
             ← 뒤로가기
