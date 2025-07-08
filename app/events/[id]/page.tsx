@@ -15,6 +15,8 @@ interface Schedule {
   id: number
   showDate: string
   showTime: string
+  reservationStart: string
+  reservationEnd: string
 }
 
 interface Review {
@@ -98,7 +100,20 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
 
   const isAvailable = useCallback((day: number): boolean => {
     const dateStr = formatDate(year, month, day)
-    return schedules.some(schedule => schedule.showDate === dateStr)
+    const today = new Date()
+    const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate())
+
+    return schedules.some(schedule => {
+      if (schedule.showDate !== dateStr) return false
+
+      const now = new Date()
+      const reservationStart = new Date(schedule.reservationStart)
+      const reservationEnd = new Date(schedule.reservationEnd)
+
+      return schedule.showDate >= todayStr &&
+        now >= reservationStart &&
+        now <= reservationEnd
+    })
   }, [year, month, schedules])
 
   const handlePrevMonth = () => {
@@ -175,7 +190,7 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
                 ? 'text-black hover:bg-gray-100 cursor-pointer'
                 : 'text-gray-300 cursor-not-allowed'
               }
-                ${isActive ? 'bg-blue-600 text-white font-bold hover:bg-blue-700' : ''}
+                ${isActive ? 'bg-blue-600 text-white font-bold hover:bg-blue-600' : ''}
               `}
               aria-label={`${year}년 ${month + 1}월 ${day}일 ${available ? '예약 가능' : '예약 불가'}`}
             >
@@ -393,10 +408,21 @@ export default function ProductPage() {
     fetchEventData()
   }, [fetchEventData])
 
-  const availableTimes = selectedDate && event
+  const availableSchedules = selectedDate && event
     ? event.schedules
-      .filter(schedule => schedule.showDate === selectedDate)
-      .map(schedule => schedule.showTime)
+      .filter(schedule => {
+        if (schedule.showDate !== selectedDate) return false
+
+        const today = new Date()
+        const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate())
+        const now = new Date()
+        const reservationStart = new Date(schedule.reservationStart)
+        const reservationEnd = new Date(schedule.reservationEnd)
+
+        return schedule.showDate >= todayStr &&
+          now >= reservationStart &&
+          now <= reservationEnd
+      })
     : []
 
   const handleDateSelect = (date: string) => {
@@ -508,23 +534,31 @@ export default function ProductPage() {
               {selectedDate && (
                 <div className="mt-6 pt-4 border-t">
                   <h4 className="font-semibold text-lg mb-3">시간 선택</h4>
-                  {availableTimes.length > 0 ? (
+                  {availableSchedules.length > 0 ? (
                     <div className="space-y-2">
-                      {availableTimes.map((time, idx) => (
-                        <button
-                          key={`${time}-${idx}`}
-                          onClick={() => setSelectedTime(time)}
-                          className={`
-                            w-full px-4 py-3 rounded-lg font-medium transition-colors
-                            ${selectedTime === time
-                            ? 'bg-blue-600 text-white'
-                            : 'border border-blue-500 text-blue-600 hover:bg-blue-50'
-                          }
-                          `}
-                        >
-                          {`${idx + 1}회 ${formatTimeDisplay(time)}`}
-                        </button>
-                      ))}
+                      {availableSchedules.map((schedule, idx) => {
+                        // 해당 날짜의 전체 스케줄에서 현재 스케줄의 순서를 찾음
+                        const allSchedulesForDate = event.schedules
+                          .filter(s => s.showDate === selectedDate)
+                          .sort((a, b) => a.showTime.localeCompare(b.showTime))
+                        const scheduleIndex = allSchedulesForDate.findIndex(s => s.id === schedule.id)
+
+                        return (
+                          <button
+                            key={schedule.id}
+                            onClick={() => setSelectedTime(schedule.showTime)}
+                            className={`
+                              w-full px-4 py-3 rounded-lg font-medium transition-colors
+                              ${selectedTime === schedule.showTime
+                              ? 'bg-blue-600 text-white'
+                              : 'border border-blue-500 text-blue-600 hover:bg-blue-50'
+                            }
+                            `}
+                          >
+                            {`${scheduleIndex + 1}회 ${formatTimeDisplay(schedule.showTime)}`}
+                          </button>
+                        )
+                      })}
                     </div>
                   ) : (
                     <p className="text-center text-gray-500 py-4">
