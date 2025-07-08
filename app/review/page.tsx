@@ -258,7 +258,7 @@ export default function ReviewWritePage() {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => router.push('/my-reservations')}
+                onClick={() => router.push('/my-reviews')}
                 className="flex-1"
               >
                 목록으로
