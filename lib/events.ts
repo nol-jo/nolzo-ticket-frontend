@@ -7,6 +7,9 @@ export interface EventRequest {
     startDate: string
     endDate: string
     schedules?: {
+        id : number
+        reservationStart: string,
+        reservationEnd: string
         showDate: string
         showTime: string
     }[]
@@ -24,8 +27,11 @@ export interface EventResponse {
     startDate: string
     endDate: string
     schedules?: {
+        id : number
         showDate: string
         showTime: string
+        reservationStart: string,
+        reservationEnd: string
     }[]
     eventCategory: string
     runtime: number
@@ -119,8 +125,8 @@ export async function createEvent(payload: FormData): Promise<EventResponse> {
 export async function updateEvent(id: number, payload: FormData): Promise<EventResponse> {
     try {
         // The payload already contains the event data and the image (if any)
-        return await apiCall<EventResponse>(`/event/update/${id}`, {
-            method: "POST",
+        return await apiCall<EventResponse>(`/event/${id}`, {
+            method: "PATCH",
             body: payload,
         })
     } catch (error) {

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Plus, Edit, Trash2, Save, X, Search, RefreshCw, Calendar, Clock,} from "lucide-react"
+import { Plus, Edit, Trash2, Save, X, Search, RefreshCw, Calendar, Clock, } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,12 +12,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {Dialog, DialogContent, DialogTitle, DialogTrigger,} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogTrigger, } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import Image from "next/image"
-import {createEvent, deleteEvent, getAllEvents, updateEvent} from "@/lib/events";
+import { createEvent, deleteEvent, getAllEvents, updateEvent } from "@/lib/events";
+import DatePicker from "react-datepicker"
 
 
 export interface Event {
@@ -35,8 +36,11 @@ export interface Event {
 }
 
 export interface Schedule {
+  id?: number
   showDate: string // LocalDate format (YYYY-MM-DD)
   showTime: string // LocalTime format (HH:MM:SS)
+  reservationStart: string
+  reservationEnd: string
 }
 
 // Form 데이터 관리를 위한 타입
@@ -55,7 +59,7 @@ export interface EventFormData {
 }
 
 const initialFormData: EventFormData = {
-  id : 0,
+  id: 0,
   title: "",
   venue: "",
   description: "",
@@ -84,6 +88,8 @@ export default function Page() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [newScheduleDate, setNewScheduleDate] = useState("")
   const [newScheduleTime, setNewScheduleTime] = useState("")
+  const [newScheduleReservationStart, setNewScheduleReservationStart] = useState("")
+  const [newScheduleReservationEnd, setNewScheduleReservationEnd] = useState("")
   const [editingScheduleIndex, setEditingScheduleIndex] = useState<number | null>(null)
 
   // 초기 데이터 로드
@@ -121,38 +127,55 @@ export default function Page() {
     }))
   }
 
+
+
+  const deleteSchedule = (index: number) => {
+    setSchedules((prev) => prev.filter((_, i) => i !== index));
+    if (editingScheduleIndex === index) cancelEditSchedule();
+  };
+
+
+  const startEditSchedule = (index: number) => {
+    const sched = schedules[index];
+    setNewScheduleDate(sched.showDate);
+    setNewScheduleTime(sched.showTime);
+    setNewScheduleReservationStart(sched.reservationStart)
+    setNewScheduleReservationEnd(sched.reservationEnd)
+    setEditingScheduleIndex(index);
+  };
+
   // 스케줄 추가
   const addSchedule = () => {
-    if (!newScheduleDate || !newScheduleTime) {
-      return
+    if (!newScheduleDate || !newScheduleTime || !newScheduleReservationEnd || !newScheduleReservationStart) return;
+    const newSchedule: Schedule = { 
+      id: editingScheduleIndex !== null ? schedules[editingScheduleIndex].id : undefined,
+      showDate: newScheduleDate, 
+      showTime: newScheduleTime, 
+      reservationStart: newScheduleReservationEnd,
+      reservationEnd: newScheduleReservationStart
+    };
+
+    // 수정 모드라면
+    if (editingScheduleIndex !== null) {
+      setSchedules((prev) => {
+        const list = [...prev];
+        list[editingScheduleIndex] = newSchedule;
+        return list.sort((a, b) => new Date(`${a.showDate} ${a.showTime}`).getTime() - new Date(`${b.showDate} ${b.showTime}`).getTime());
+      });
+      cancelEditSchedule();
+      return;
     }
 
-    const newSchedule: Schedule = {
-      showDate: newScheduleDate,
-      showTime: newScheduleTime,
-    }
-
-    // 중복 체크
-    const isDuplicate = schedules.some(
-      (schedule) => schedule.showDate === newSchedule.showDate && schedule.showTime === newSchedule.showTime,
-    )
-
-    if (isDuplicate) {
-      return
-    }
+    // 추가 모드(중복 체크 + 정렬)
+    const isDup = schedules.some((s) => s.showDate === newSchedule.showDate && s.showTime === newSchedule.showTime);
+    if (isDup) return;
 
     setSchedules((prev) =>
-      [...prev, newSchedule].sort((a, b) => {
-        const dateA = new Date(`${a.showDate} ${a.showTime}`)
-        const dateB = new Date(`${b.showDate} ${b.showTime}`)
-        return dateA.getTime() - dateB.getTime()
-      }),
-    )
-
-    // 입력 필드 초기화
-    setNewScheduleDate("")
-    setNewScheduleTime("")
-  }
+      [...prev, newSchedule].sort((a, b) => new Date(`${a.showDate} ${a.showTime}`).getTime() - new Date(`${b.showDate} ${b.showTime}`).getTime())
+    );
+    setNewScheduleDate("");
+    setNewScheduleTime("");
+  };
 
   const cancelEditSchedule = () => {
     setNewScheduleDate("")
@@ -174,9 +197,12 @@ export default function Page() {
       schedules:
         schedules.length > 0
           ? schedules.map((schedule) => ({
-              showDate: schedule.showDate,
-              showTime: schedule.showTime + ":00", // HH:MM:SS 형식으로 변환
-            }))
+            id: schedule.id,
+            showDate: schedule.showDate,
+            showTime: schedule.showTime + ":00", // HH:MM:SS 형식으로 변환
+            reservationStart: schedule.reservationStart,
+            reservationEnd:schedule.reservationEnd
+          }))
           : [],
     }
 
@@ -235,8 +261,11 @@ export default function Page() {
     // 스케줄 설정
     setSchedules(
       event.schedules?.map((schedule: Schedule) => ({
+        id:schedule.id,
         showDate: schedule.showDate,
         showTime: schedule.showTime.substring(0, 5), // HH:MM:SS -> HH:MM
+        reservationStart:schedule.reservationStart,
+        reservationEnd:schedule.reservationEnd
       })) || [],
     )
 
@@ -303,7 +332,7 @@ export default function Page() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-              <DialogTitle/>
+              <DialogTitle />
               <form onSubmit={handleSubmit} className="space-y-6">
                 <Tabs defaultValue="basic" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
@@ -408,6 +437,7 @@ export default function Page() {
                           required
                         />
                       </div>
+
                       <div>
                         <Label htmlFor="endDate">종료일 *</Label>
                         <Input
@@ -418,6 +448,7 @@ export default function Page() {
                           required
                         />
                       </div>
+
                     </div>
                   </TabsContent>
 
@@ -449,88 +480,102 @@ export default function Page() {
                   </TabsContent>
 
                   <TabsContent value="schedules" className="space-y-4">
-                    <div className="border rounded-lg p-4 bg-gray-50">
-                      <Label className="text-base font-semibold mb-3 block">
-                        {editingScheduleIndex !== null ? "공연 일정 수정" : "새 공연 일정 추가"}
-                      </Label>
-                      <div className="grid grid-cols-4 gap-4 items-end">
-                        <div>
-                          <Label htmlFor="newScheduleDate">공연일</Label>
-                          <Input
-                            id="newScheduleDate"
-                            type="date"
-                            value={newScheduleDate}
-                            onChange={(e) => setNewScheduleDate(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="newScheduleTime">공연시간</Label>
-                          <Input
-                            id="newScheduleTime"
-                            type="time"
-                            value={newScheduleTime}
-                            onChange={(e) => setNewScheduleTime(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Button type="button" onClick={addSchedule} className="w-full">
-                            {editingScheduleIndex !== null ? (
-                              <>
-                                <Save className="w-4 h-4 mr-2" />
-                                수정
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="w-4 h-4 mr-2" />
-                                추가
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        {editingScheduleIndex !== null && (
-                          <div>
-                            <Button type="button" variant="outline" onClick={cancelEditSchedule} className="w-full">
-                              <X className="w-4 h-4 mr-2" />
-                              취소
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+  <div className="border rounded-lg p-4 bg-gray-50">
+    <Label className="text-base font-semibold mb-3 block">
+      {editingScheduleIndex !== null ? "공연 일정 수정" : "새 공연 일정 추가"}
+    </Label>
+    <div className="grid grid-cols-2 gap-4 items-end">
+      <div>
+        <Label htmlFor="newScheduleDate">공연일</Label>
+        <Input
+          id="newScheduleDate"
+          type="date"
+          value={newScheduleDate}
+          onChange={(e) => setNewScheduleDate(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="newScheduleTime">공연시간</Label>
+        <Input
+          id="newScheduleTime"
+          type="time"
+          value={newScheduleTime}
+          onChange={(e) => setNewScheduleTime(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="newReservationStart">예약시작</Label>
+        <Input
+          id="newReservationStart"
+          type="datetime-local"
+          value={newScheduleReservationStart}
+          onChange={(e) => setNewScheduleReservationStart(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="newReservationStart">예약종료</Label>
+        <Input
+          id="newReservationEnd"
+          type="datetime-local"
+          value={newScheduleReservationEnd}
+          onChange={(e) => setNewScheduleReservationEnd(e.target.value)}
+        />
+      </div>
+      <Button
+        type="button"
+        className="col-span-1"
+        onClick={addSchedule}
+      >
+        {editingScheduleIndex !== null ? <><Save className="w-4 h-4 mr-2"/>수정</> : <><Plus className="w-4 h-4 mr-2"/>추가</>}
+      </Button>
+      {editingScheduleIndex !== null && (
+        <Button
+          type="button"
+          variant="outline"
+          className="col-span-1"
+          onClick={cancelEditSchedule}
+        >
+          <X className="w-4 h-4 mr-2"/>취소
+        </Button>
+      )}
+    </div>
+  </div>
 
-                    <div>
-                      <Label className="text-base font-semibold mb-3 block">
-                        등록된 공연 일정 ({schedules.length}개)
-                      </Label>
-                      {schedules.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500 border rounded-lg bg-gray-50">
-                          <Calendar className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-                          <p>등록된 공연 일정이 없습니다.</p>
-                          <p className="text-sm">위에서 공연 일정을 추가해주세요.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                          {schedules.map((schedule, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center justify-between p-3 border rounded-lg bg-white"
-                            >
-                              <div className="flex items-center space-x-4">
-                                <div className="flex items-center space-x-2 text-sm">
-                                  <Calendar className="w-4 h-4 text-blue-500" />
-                                  <span className="font-medium">{schedule.showDate}</span>
-                                </div>
-                                <div className="flex items-center space-x-2 text-sm">
-                                  <Clock className="w-4 h-4 text-green-500" />
-                                  <span>{schedule.showTime}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
+  <div>
+    <Label className="text-base font-semibold mb-3 block">
+      등록된 공연 일정 ({schedules.length}개)
+    </Label>
+    <div className="space-y-2 max-h-60 overflow-y-auto">
+      {schedules.map((schedule, idx) => (
+        <div
+          key={idx}
+          className="grid grid-cols-6 items-center p-3 border rounded-lg bg-white gap-4"
+        >
+          <span>{schedule.showDate}</span>
+          <span>{schedule.showTime}</span>
+          <span>{schedule.reservationStart.replace("T", " ")}</span>
+          <span>{schedule.reservationEnd.replace("T", " ")}</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => startEditSchedule(idx)}
+          >
+            <Edit className="w-4 h-4"/>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            onClick={() => deleteSchedule(idx)}
+          >
+            <Trash2 className="w-4 h-4"/>
+          </Button>
+        </div>
+      ))}
+    </div>
+  </div>
+</TabsContent>
                 </Tabs>
 
                 <div className="flex justify-end space-x-2 pt-4 border-t">
@@ -551,13 +596,12 @@ export default function Page() {
         {/* Alert */}
         {alert && (
           <Alert
-            className={`mb-6 ${
-              alert.type === "success"
-                ? "border-green-500 bg-green-50"
-                : alert.type === "warning"
-                  ? "border-yellow-500 bg-yellow-50"
-                  : "border-red-500 bg-red-50"
-            }`}
+            className={`mb-6 ${alert.type === "success"
+              ? "border-green-500 bg-green-50"
+              : alert.type === "warning"
+                ? "border-yellow-500 bg-yellow-50"
+                : "border-red-500 bg-red-50"
+              }`}
           >
             <AlertDescription
               className={
@@ -694,7 +738,15 @@ export default function Page() {
                               </div>
                             )}
                           </div>
-                           <div className="flex flex-col space-y-2">
+                          <div className="flex flex-col space-y-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(event)}
+                            >
+
+                              <Edit className="w-4 h-4" />
+                            </Button>
                             <Button variant="destructive" size="sm" onClick={() => handleDelete(event.id)}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
