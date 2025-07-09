@@ -101,8 +101,6 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
 
   const isAvailable = useCallback((day: number): boolean => {
     const dateStr = formatDate(year, month, day)
-    const today = new Date()
-    const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate())
 
     return schedules.some(schedule => {
       if (schedule.showDate !== dateStr) return false
@@ -111,9 +109,7 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
       const reservationStart = new Date(schedule.reservationStart)
       const reservationEnd = new Date(schedule.reservationEnd)
 
-      return schedule.showDate >= todayStr &&
-        now >= reservationStart &&
-        now <= reservationEnd
+      return now >= reservationStart && now <= reservationEnd
     })
   }, [year, month, schedules])
 

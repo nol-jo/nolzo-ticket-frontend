@@ -18,8 +18,6 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import Image from "next/image"
 import { createEvent, deleteEvent, getAllEvents, updateEvent } from "@/lib/events";
-import DatePicker from "react-datepicker"
-
 
 export interface Event {
   id: number
@@ -147,12 +145,12 @@ export default function Page() {
   // 스케줄 추가
   const addSchedule = () => {
     if (!newScheduleDate || !newScheduleTime || !newScheduleReservationEnd || !newScheduleReservationStart) return;
-    const newSchedule: Schedule = { 
+    const newSchedule: Schedule = {
       id: editingScheduleIndex !== null ? schedules[editingScheduleIndex].id : undefined,
-      showDate: newScheduleDate, 
-      showTime: newScheduleTime, 
-      reservationStart: newScheduleReservationEnd,
-      reservationEnd: newScheduleReservationStart
+      showDate: newScheduleDate,
+      showTime: newScheduleTime,
+      reservationStart: newScheduleReservationStart,
+      reservationEnd: newScheduleReservationEnd
     };
 
     // 수정 모드라면
@@ -513,7 +511,7 @@ export default function Page() {
         />
       </div>
       <div>
-        <Label htmlFor="newReservationStart">예약종료</Label>
+        <Label htmlFor="newReservationEnd">예약종료</Label>
         <Input
           id="newReservationEnd"
           type="datetime-local"
