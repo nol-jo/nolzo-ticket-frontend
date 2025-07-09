@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { useParams, useRouter } from "next/navigation"
+import ReviewSection from "@/components/ReviewSection";
 
 // Types
 interface Schedule {
@@ -199,131 +200,6 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
           )
         })}
       </div>
-    </div>
-  )
-}
-
-interface StarRatingProps {
-  rating: number
-  size?: 'sm' | 'md' | 'lg'
-}
-
-function StarRating({ rating, size = 'sm' }: StarRatingProps) {
-  const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-5 h-5',
-    lg: 'w-6 h-6'
-  }
-
-  return (
-    <div className="flex items-center gap-1" role="img" aria-label={`${rating}점 평점`}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`${sizeClasses[size]} ${
-            star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-          }`}
-        />
-      ))}
-    </div>
-  )
-}
-
-interface ReviewSectionProps {
-  eventId: number
-}
-
-function ReviewSection({ eventId }: ReviewSectionProps) {
-  const [reviewInfo, setReviewInfo] = useState<ReviewDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchReviews = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const response = await fetch(`/api/v1/reviews/events/${eventId}`)
-      if (!response.ok) {
-        throw new Error('리뷰 데이터를 가져오는데 실패했습니다.')
-      }
-
-      const data: ReviewDetail = await response.json()
-      setReviewInfo(data)
-    } catch (err) {
-      console.error('리뷰 데이터 로딩 오류:', err)
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [eventId])
-
-  useEffect(() => {
-    fetchReviews()
-  }, [fetchReviews])
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">리뷰</h2>
-      <Card className="p-6">
-        {isLoading ? (
-          <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-200 rounded"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-8">
-            <p className="text-red-500 mb-4">{error}</p>
-            <Button onClick={fetchReviews} variant="outline" size="sm">
-              다시 시도
-            </Button>
-          </div>
-        ) : !reviewInfo || reviewInfo.reviewCount === 0 ? (
-          <p className="text-gray-500 text-center py-8">아직 리뷰가 없습니다.</p>
-        ) : (
-          <>
-            <div className="flex items-center gap-4 mb-6 pb-6 border-b">
-              <div className="flex items-center gap-2">
-                <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-                <span className="text-2xl font-bold">{reviewInfo.averageRating.toFixed(1)}</span>
-              </div>
-              <div className="text-gray-600">
-                총 {reviewInfo.reviewCount.toLocaleString()}개의 리뷰
-              </div>
-            </div>
-            <div className="space-y-6">
-              {reviewInfo.reviews.map((review) => (
-                <article key={review.id} className="flex items-start gap-4">
-                  <div className="flex-shrink-0">
-                    {/* You can add user avatars here if available */}
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold">
-                      {review.author.charAt(0)}
-                    </div>
-                  </div>
-                  <div className="flex-grow">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">{review.author}</p>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <StarRating rating={review.rating} size="sm" />
-                          <span>·</span>
-                          <time dateTime={review.createdAt}>
-                            {formatDisplayDate(review.createdAt)}
-                          </time>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-gray-700">{review.content}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </>
-        )}
-      </Card>
     </div>
   )
 }
