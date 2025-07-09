@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Calendar, MapPin, Clock, RefreshCw, X } from "lucide-react"
@@ -56,38 +56,70 @@ export default function MyReservationsPage() {
   const [showModal, setShowModal] = useState(false)
   const [detailRes, setDetailRes] = useState<Reservation | null>(null)
 
-  useEffect(() => {
-    async function fetchReservations() {
-      const jwtUser: User | null = await authAPI.checkAndRefreshToken();
-      if (!jwtUser) {
-        router.push("/login?returnUrl=" + encodeURIComponent("/my-reservations"));
-        return;
-      }
-      setIsLoggedIn(true);
+  const fetchReservations = useCallback(async () => {
+    setIsLoading(true);
+    const jwtUser: User | null = await authAPI.checkAndRefreshToken();
+    if (!jwtUser) {
+      router.push("/login?returnUrl=" + encodeURIComponent("/my-reservations"));
+      return;
+    }
+    setIsLoggedIn(true);
 
+    try {
+      const accessToken = getSessionToken('accessToken');
+      const res = await fetch("/api/v1/reservations", {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch reservations');
+      }
+
+      const data = await res.json();
+      setReservations(data);
+    } catch (error) {
+      console.error("Failed to fetch reservations:", error);
+      setReservations([]); // Clear reservations on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    fetchReservations();
+  }, [fetchReservations]);
+
+  const handleCancel = async (reservationId: number | null) => {
+    if (reservationId === null) {
+      alert('잘못된 예약 정보입니다.');
+      return;
+    }
+    if (confirm('정말로 예약을 취소하시겠습니까?')) {
       try {
         const accessToken = getSessionToken('accessToken');
-        const res = await fetch("/api/v1/reservations", {
+        const res = await fetch(`/api/v1/reservations/reservation/${reservationId}`, {
+          method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
         });
 
         if (!res.ok) {
-          throw new Error('Failed to fetch reservations');
+          const errorResponse = await res.json().catch(() => null);
+          const errorMessage = errorResponse?.message || '예약 취소에 실패했습니다.';
+          throw new Error(errorMessage);
         }
-
-        const data = await res.json();
-        setReservations(data);
+        
+        alert('예약이 성공적으로 취소되었습니다.');
+        await fetchReservations();
       } catch (error) {
-        console.error("Failed to fetch reservations:", error);
-      } finally {
-        setIsLoading(false);
+        console.error("Failed to cancel reservation:", error);
+        alert(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
       }
     }
-
-    fetchReservations();
-  }, [router]);
+  }
 
   // 티켓 상태를 기반으로 예약 상태 결정
   const getReservationStatus = (tickets: Ticket[]) => {
@@ -125,14 +157,6 @@ export default function MyReservationsPage() {
       case "oldest": return [...list].sort((a, b) => new Date(a.detail.createdAt).getTime() - new Date(b.detail.createdAt).getTime())
       case "performance-date": return [...list].sort((a, b) => new Date(a.event.date).getTime() - new Date(b.event.date).getTime())
       default: return list
-    }
-  }
-
-  const handleCancel = (reservationNumber: string) => {
-    if (confirm('정말로 예약을 취소하시겠습니까?')) {
-      // TODO: Add API call to cancel reservation
-      console.log("Cancelling reservation", reservationNumber)
-      setShowModal(false)
     }
   }
 
@@ -199,7 +223,7 @@ export default function MyReservationsPage() {
                           </span>
                           <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => { setDetailRes(res); setShowModal(true) }}>예약상세</Button>
                           {getReservationStatus(res.detail.tickets) === 'CONFIRMED' &&
-                            <Button size="sm" variant="destructive" className="w-full mt-2" onClick={() => handleCancel(res.detail.reservationNumber)}>예약취소</Button>
+                            <Button size="sm" variant="destructive" className="w-full mt-2" onClick={() => handleCancel(res.detail.id)}>예약취소</Button>
                           }
                           {getReservationStatus(res.detail.tickets) === 'COMPLETED' &&
                             <Button size="sm" className="w-full mt-2" onClick={() => router.push(`/review?eventId=${res.event.id}`)}>리뷰 등록</Button>
