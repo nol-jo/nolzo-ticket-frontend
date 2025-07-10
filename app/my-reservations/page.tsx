@@ -55,6 +55,7 @@ export default function MyReservationsPage() {
   const [sortBy, setSortBy] = useState("latest")
   const [showModal, setShowModal] = useState(false)
   const [detailRes, setDetailRes] = useState<Reservation | null>(null)
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
 
   const fetchReservations = useCallback(async () => {
     setIsLoading(true);
@@ -91,6 +92,44 @@ export default function MyReservationsPage() {
     fetchReservations();
   }, [fetchReservations]);
 
+  const handleShowDetails = async (reservationId: number | null) => {
+    if (reservationId === null) {
+      alert('잘못된 예약 정보입니다.');
+      return;
+    }
+    
+    setDetailRes(null);
+    setIsDetailLoading(true);
+    setShowModal(true);
+
+    try {
+      const accessToken = getSessionToken('accessToken');
+      const res = await fetch(`/api/v1/reservations/details/${reservationId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch reservation details');
+      }
+
+      const data = await res.json();
+      setDetailRes(data);
+    } catch (error) {
+      console.error("Failed to fetch reservation details:", error);
+      alert('예약 상세 정보를 불러오는데 실패했습니다.');
+      setShowModal(false);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setDetailRes(null);
+  };
+
   const handleCancel = async (reservationId: number | null) => {
     if (reservationId === null) {
       alert('잘못된 예약 정보입니다.');
@@ -119,6 +158,17 @@ export default function MyReservationsPage() {
         alert(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.');
       }
     }
+  }
+
+  const getPaymentMethodName = (method: string | null) => {
+    if (!method) return '알 수 없음';
+    const map: { [key: string]: string } = {
+      'CREDIT_CARD': '신용카드',
+      'DEBIT_CARD': '체크카드',
+      'PAYPAL': '페이팔',
+      'BANK_TRANSFER': '계좌이체'
+    };
+    return map[method] || method;
   }
 
   // 티켓 상태를 기반으로 예약 상태 결정
@@ -221,7 +271,7 @@ export default function MyReservationsPage() {
                           <span className="text-2xl font-bold text-blue-600 ">
                             {res.detail.totalPrice.toLocaleString()}원
                           </span>
-                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => { setDetailRes(res); setShowModal(true) }}>예약상세</Button>
+                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => handleShowDetails(res.detail.id)}>예약상세</Button>
                           {getReservationStatus(res.detail.tickets) === 'CONFIRMED' &&
                             <Button size="sm" variant="destructive" className="w-full mt-2" onClick={() => handleCancel(res.detail.id)}>예약취소</Button>
                           }
@@ -240,31 +290,45 @@ export default function MyReservationsPage() {
         <Footer />
       </div>
 
-      { showModal && detailRes && (
+      { showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-96 overflow-hidden">
             <div className="flex justify-between items-center p-3 border-b">
               <h3 className="text-lg font-semibold">예약 상세 정보</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowModal(false)}><X/></Button>
+              <Button variant="ghost" size="sm" onClick={handleCloseModal}><X/></Button>
             </div>
-            <div className="p-4 space-y-2">
-              <p><strong>공연명:</strong> {detailRes.event.title}</p>
-              <p><strong>장소:</strong> {detailRes.event.venue}</p>
-              <p><strong>날짜:</strong> {detailRes.event.date} {detailRes.event.time}</p>
-              <p>
-                <strong>좌석:</strong><br />
-                {detailRes.detail.tickets.map(ticket => (
-                  <span key={ticket.ticketId}>{`${ticket.rowName}열 ${ticket.seatNumber}번 (${ticket.seatSection})`}<br /></span>
-                ))}
-              </p>
-              <p><strong>예약번호:</strong> {detailRes.detail.reservationNumber}</p>
-              <p><strong>결제방법:</strong> 신용카드</p>
-              <p><strong>예약일:</strong> {new Date(detailRes.detail.createdAt).toLocaleString()}</p>
-              <p><strong>총 가격:</strong> {detailRes.detail.totalPrice.toLocaleString()}원</p>
-            </div>
-            <div className="p-4 text-right border-t">
-              <Button onClick={() => setShowModal(false)}>닫기</Button>
-            </div>
+            {isDetailLoading ? (
+              <div className="p-8 text-center">
+                <RefreshCw className="animate-spin mx-auto h-8 w-8 text-blue-600 mb-2"/>
+                <p>상세 정보를 불러오는 중...</p>
+              </div>
+            ) : detailRes ? (
+              <>
+                <div className="p-4 space-y-2">
+                  <p><strong>공연명:</strong> {detailRes.event.title}</p>
+                  <p><strong>장소:</strong> {detailRes.event.venue}</p>
+                  <p><strong>날짜:</strong> {detailRes.event.date} {detailRes.event.time}</p>
+                  <p>
+                    <strong>좌석:</strong><br />
+                    {detailRes.detail.tickets.map(ticket => (
+                      <span key={ticket.ticketId}>{`${ticket.rowName}열 ${ticket.seatNumber}번 (${ticket.seatSection})`}<br /></span>
+                    ))}
+                  </p>
+                  <p><strong>예약번호:</strong> {detailRes.detail.reservationNumber}</p>
+                  <p><strong>결제방법:</strong> {getPaymentMethodName(detailRes.detail.paymentMethod)}</p>
+                  <p><strong>예약일:</strong> {new Date(detailRes.detail.createdAt).toLocaleString()}</p>
+                  <p><strong>총 가격:</strong> {detailRes.detail.totalPrice.toLocaleString()}원</p>
+                </div>
+                <div className="p-4 text-right border-t">
+                  <Button onClick={handleCloseModal}>닫기</Button>
+                </div>
+              </>
+            ) : (
+              <div className="p-8 text-center">
+                <p>예약 정보를 불러오지 못했습니다.</p>
+                <Button onClick={handleCloseModal} className="mt-2">닫기</Button>
+              </div>
+            )}
           </div>
         </div>
       )}
