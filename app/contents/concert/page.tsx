@@ -2,10 +2,10 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { useEffect, useState, useRef } from "react"
 
 import Header from "@/components/header"
 import Footer from "@/components/footer"
-import {useEffect, useState} from "react";
 
 interface Event {
   id: number
@@ -17,37 +17,79 @@ interface Event {
   category: string
 }
 
-export default function ConcertGenrePage() {
+interface EventSlice {
+  content: Event[]
+  last: boolean
+}
+
+export default function ConcertPage() {
   const [events, setEvents] = useState<Event[]>([])
+  const [page, setPage] = useState(0)
+  const [hasNext, setHasNext] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-        const response = await fetch('/api/v1/event?category=CONCERT')
-
-        console.log(response)
-        if (!response.ok) {
-          throw new Error('데이터를 가져오는데 실패했습니다.')
-        }
-
-        const data: Event[] = await response.json()
-        setEvents(data)
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.')
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchEvents = async (pageNum: number) => {
+    if (pageNum === 0) {
+      setIsLoading(true)
+    } else {
+      setIsFetchingMore(true)
     }
 
-    fetchData()
+    try {
+      const response = await fetch(`/api/v1/event?category=CONCERT&page=${pageNum}`)
+      if (!response.ok) {
+        throw new Error("데이터를 가져오는데 실패했습니다.")
+      }
+      const data: EventSlice = await response.json()
+
+      setEvents((prev) => (pageNum === 0 ? data.content : [...prev, ...data.content]))
+      setHasNext(!data.last)
+      if (!data.last) {
+        setPage(pageNum + 1)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.")
+    } finally {
+      setIsLoading(false)
+      setIsFetchingMore(false)
+    }
+  }
+
+  // Initial fetch
+  useEffect(() => {
+    fetchEvents(0)
   }, [])
 
-  // 로딩 상태
-  if (isLoading) {
+  // Intersection Observer for infinite scrolling
+  useEffect(() => {
+    if (!hasNext || isFetchingMore || isLoading) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchEvents(page)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentSentinel = sentinelRef.current
+    if (currentSentinel) {
+      observer.observe(currentSentinel)
+    }
+
+    return () => {
+      if (currentSentinel) {
+        observer.unobserve(currentSentinel)
+      }
+    }
+  }, [hasNext, isFetchingMore, isLoading, page])
+
+  // 로딩 상태 (Initial Load)
+  if (isLoading && page === 0) {
     return (
       <div className="min-h-screen bg-white">
         <Header />
@@ -71,7 +113,7 @@ export default function ConcertGenrePage() {
           <div className="text-white text-center">
             <p className="text-red-400 mb-4">⚠️ {error}</p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => fetchEvents(0)}
               className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
             >
               다시 시도
@@ -99,14 +141,10 @@ export default function ConcertGenrePage() {
 
       {/* Main Cards Section */}
       <section className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-800">총 {events.length}개의 공연</h2>
-        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {events.map((event) => (
             <Link key={event.id} href={`/performance/${event.id}`}>
               <div className="group cursor-pointer">
-                {/* 포스터 이미지 영역 */}
                 <div className="relative overflow-hidden rounded-lg shadow-lg mb-4 aspect-[3/4] bg-gray-200">
                   <Image
                     src={event.posterImageUrl || "/placeholder.svg"}
@@ -115,8 +153,6 @@ export default function ConcertGenrePage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
-
-                {/* 공연 정보 영역 */}
                 <div className="space-y-2">
                   <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                     {event.title}
@@ -128,6 +164,19 @@ export default function ConcertGenrePage() {
             </Link>
           ))}
         </div>
+
+        {/* Sentinel and Loader */}
+        <div ref={sentinelRef} style={{ height: "1px" }} />
+        {isFetchingMore && (
+          <div className="text-center py-6">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-800 mx-auto"></div>
+          </div>
+        )}
+        {!hasNext && events.length > 0 && (
+          <div className="text-center py-6 text-gray-500">
+            <p>모든 공연을 불러왔습니다.</p>
+          </div>
+        )}
       </section>
       <Footer />
     </div>
