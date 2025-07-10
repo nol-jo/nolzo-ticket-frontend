@@ -20,20 +20,6 @@ interface Schedule {
   reservationEnd: string
 }
 
-interface Review {
-  id: number
-  content: string
-  rating: number
-  author: string
-  createdAt: string
-}
-
-interface ReviewDetail {
-  averageRating: number
-  reviewCount: number
-  reviews: Review[]
-}
-
 interface Event {
   id: number
   title: string

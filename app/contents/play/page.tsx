@@ -45,7 +45,11 @@ export default function PlayPage() {
       }
       const data: EventSlice = await response.json()
 
-      setEvents((prev) => (pageNum === 0 ? data.content : [...prev, ...data.content]))
+      setEvents((prev) => {
+        const combinedEvents = pageNum === 0 ? data.content : [...prev, ...data.content];
+        const uniqueEvents = Array.from(new Map(combinedEvents.map(event => [event.id, event])).values());
+        return uniqueEvents;
+      })
       setHasNext(!data.last)
       if (!data.last) {
         setPage(pageNum + 1)
