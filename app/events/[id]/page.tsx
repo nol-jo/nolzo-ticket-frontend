@@ -69,15 +69,6 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 const formatDate = (year: number, month: number, day: number): string =>
   `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
 
-const formatDisplayDate = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
 const formatTimeDisplay = (time: string): string => time.slice(0, 5)
 
 // Components
@@ -187,7 +178,7 @@ function BookingCalendar({ selected, onSelect, schedules }: BookingCalendarProps
                 ? 'text-black hover:bg-gray-100 cursor-pointer'
                 : 'text-gray-300 cursor-not-allowed'
               }
-                ${isActive ? 'bg-blue-600 text-white font-bold hover:bg-blue-600' : ''}
+                ${isActive ? 'bg-blue-500 text-white font-bold hover:bg-blue-500' : ''}
               `}
               aria-label={`${year}년 ${month + 1}월 ${day}일 ${available ? '예약 가능' : '예약 불가'}`}
             >
