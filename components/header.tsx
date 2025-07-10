@@ -118,6 +118,7 @@ export default function Header() {
     if (success) {
       setIsLoggedIn(false)
       setUserInfo(null)
+      alert('로그아웃 되었습니다.')
       window.location.href = "/";
     } else {
       alert('로그아웃 중 오류가 발생했습니다.')
