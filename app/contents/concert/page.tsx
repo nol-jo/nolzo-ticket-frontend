@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from "react"
 
 import Header from "@/components/header"
 import Footer from "@/components/footer"
+import EventFilter from '@/components/EventFilter';
 
 interface Event {
   id: number
@@ -29,6 +30,10 @@ export default function ConcertPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [condition, setSort] = useState('ranking');
+  const [age, setAge] = useState('');
+
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const fetchEvents = async (pageNum: number) => {
@@ -141,6 +146,17 @@ export default function ConcertPage() {
             <p className="text-lg text-gray-600">최고의 아티스트들과 함께하는 특별한 무대</p>
           </div>
         </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 py-6">
+        <EventFilter
+          condition={condition}
+          age={age}
+          onChange={(newSort, newAge) => {
+            setSort(newSort);
+            setAge(newAge);
+          }}
+        />
       </section>
 
       {/* Main Cards Section */}
