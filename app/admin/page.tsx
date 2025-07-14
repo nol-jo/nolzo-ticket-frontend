@@ -1,8 +1,12 @@
 "use client"
 
+"use client"
+
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { authAPI } from "@/lib/utils"
 import { Plus, Edit, Trash2, Save, X, Search, RefreshCw, Calendar, Clock, } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -71,6 +75,8 @@ const initialFormData: EventFormData = {
 }
 
 export default function Page() {
+  const router = useRouter()
+  const [isAuthorized, setIsAuthorized] = useState(false)
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [apiConnected, setApiConnected] = useState<boolean | null>(null)
@@ -90,10 +96,17 @@ export default function Page() {
   const [newScheduleReservationEnd, setNewScheduleReservationEnd] = useState("")
   const [editingScheduleIndex, setEditingScheduleIndex] = useState<number | null>(null)
 
-  // 초기 데이터 로드
+  // 권한 확인 및 데이터 로드
   useEffect(() => {
-    loadEvents()
-  }, [])
+    const user = authAPI.getCurrentUser()
+    if (user?.role === "ADMIN") {
+      setIsAuthorized(true)
+      loadEvents()
+    } else {
+      window.alert("관리자만 접근할 수 있습니다.")
+      router.push("/")
+    }
+  }, [router])
 
   const showAlert = (type: "success" | "error" | "warning", message: string) => {
     setAlert({ type, message })
@@ -311,6 +324,17 @@ export default function Page() {
     MUSICAL: "뮤지컬",
     CONCERT: "콘서트",
     PLAY: "연극",
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">권한을 확인 중이거나, 접근 권한이 없습니다...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
