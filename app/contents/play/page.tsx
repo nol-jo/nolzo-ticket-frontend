@@ -36,25 +36,30 @@ export default function PlayPage() {
 
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
-  const fetchEvents = async (pageNum: number) => {
-    if (pageNum === 0) {
-      setIsLoading(true)
-    } else {
-      setIsFetchingMore(true)
-    }
-
+  const fetchEvents = async (pageNum: number, condition: string, age: string) => {
+    pageNum === 0 ? setIsLoading(true) : setIsFetchingMore(true);
     try {
-      const response = await fetch(`/api/v1/event?category=PLAY&page=${pageNum}`)
-      if (!response.ok) {
-        throw new Error("데이터를 가져오는데 실패했습니다.")
-      }
-      const data: EventSlice = await response.json()
+      const qs = new URLSearchParams({
+        category: 'PLAY',
+        page: String(pageNum),
+        condition,
+        ...(age && { age }),
+      }).toString();
 
-      setEvents((prev) => {
-        const combinedEvents = pageNum === 0 ? data.content : [...prev, ...data.content];
-        const uniqueEvents = Array.from(new Map(combinedEvents.map(event => [event.id, event])).values());
-        return uniqueEvents;
-      })
+      
+      const res = await fetch(`/api/v1/event?${qs}`);
+      if (!res.ok) throw new Error('데이터를 가져오는데 실패했습니다.');
+
+      const data: EventSlice = await res.json();
+      setEvents(prev =>
+        pageNum === 0
+          ? data.content
+          : Array.from(
+              new Map(
+                [...prev, ...data.content].map(e => [e.id, e])
+              ).values()
+            )
+      );
       setHasNext(!data.last)
       if (!data.last) {
         setPage(pageNum + 1)
@@ -69,8 +74,9 @@ export default function PlayPage() {
 
   // Initial fetch
   useEffect(() => {
-    fetchEvents(0)
-  }, [])
+    setPage(0);
+    fetchEvents(0, condition, age);
+  }, [condition, age]);
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
@@ -79,7 +85,7 @@ export default function PlayPage() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          fetchEvents(page)
+          fetchEvents(0, condition, age);
         }
       },
       { threshold: 0.1 }
@@ -122,7 +128,7 @@ export default function PlayPage() {
           <div className="text-white text-center">
             <p className="text-red-400 mb-4">⚠️ {error}</p>
             <button
-              onClick={() => fetchEvents(0)}
+              onClick={() => fetchEvents(0, condition, age)}
               className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
             >
               다시 시도
