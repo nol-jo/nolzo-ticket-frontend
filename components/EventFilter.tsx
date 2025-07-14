@@ -24,6 +24,7 @@ export default function EventFilter({ condition, age, onChange }: EventFilterPro
                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         >
           <option value="ranking">인기순</option>
+          <option value="date">날짜순</option>
         </select>
       </div>
 
